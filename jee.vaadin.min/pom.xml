@@ -23,6 +23,10 @@
 		<version.slf4j>1.7.6</version.slf4j>
 	</properties>
 
+	<build>
+		<finalName>${artifactId}</finalName>
+	</build>
+
 	<!-- to override transient dependencies versions -->
 	<dependencyManagement>
 		<dependencies>
