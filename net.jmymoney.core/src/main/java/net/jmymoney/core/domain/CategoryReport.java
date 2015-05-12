@@ -8,29 +8,39 @@ import net.jmymoney.core.entity.Category;
 
 public class CategoryReport {
 
-	private Category category;
-	
-	private List<BigDecimal> values = new ArrayList<>();
+    private Category category;
 
-	public CategoryReport(Category category) {
-		super();
-		this.category = category;
-	}
+    private List<BigDecimal> valuesPlus = new ArrayList<>();
 
-	public Category getCategory() {
-		return category;
-	}
+    private List<BigDecimal> valuesMinus = new ArrayList<>();
 
-	public void setCategory(Category category) {
-		this.category = category;
-	}
+    public CategoryReport(Category category) {
+        super();
+        this.category = category;
+    }
 
-	public List<BigDecimal> getValues() {
-		return values;
-	}
+    public Category getCategory() {
+        return category;
+    }
 
-	public void setValues(List<BigDecimal> values) {
-		this.values = values;
-	}
-	
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+    public List<BigDecimal> getValuesPlus() {
+        return valuesPlus;
+    }
+
+    public void setValuesPlus(List<BigDecimal> values) {
+        this.valuesPlus = values;
+    }
+
+    public List<BigDecimal> getValuesMinus() {
+        return valuesMinus;
+    }
+
+    public void setValuesMinus(List<BigDecimal> valuesMinus) {
+        this.valuesMinus = valuesMinus;
+    }
+
 }

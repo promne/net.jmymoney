@@ -29,50 +29,72 @@ import net.jmymoney.core.entity.UserAccount;
 @Stateless
 public class ReportingService {
 
-	@Inject
-	private Logger log;
-	
-	@Inject
-	private CategoryService categoryService;
-	
-	@PersistenceContext
-	private EntityManager entityManager;	
+    @Inject
+    private Logger log;
 
-	public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit) {
-		assert dateFrom.before(dateTo);
-		
-		List<CategoryReport> result = categoryService.listCategories(userAccount).stream().map(category -> new CategoryReport(category)).collect(Collectors.toList());
-		result.add(new CategoryReport(null)); //unassigned
-		
-		
-		Date dateFrameStart = dateFrom;
-		while (dateFrameStart.before(dateTo)) {
-			Date dateFrameEnd = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
-			dateFrameEnd = dateFrameEnd.after(dateTo) ? dateTo : dateFrameEnd;
-			
-	    	CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-	    	CriteriaQuery<Tuple> cq = cb.createQuery(Tuple.class);
-	    	
-	    	Root<Transaction> trRoot = cq.from(Transaction.class);
-	    	Join<Transaction, TransactionSplit> trSplits = trRoot.join("splits");
-	    	
-	    	cq.multiselect(trSplits.get("category").get("id"), cb.sum(trSplits.<BigDecimal>get("amount")));
-	    	cq.groupBy(trSplits.get("category").get("id"));
-	    	cq.where(cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount), cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd)));
-			
-			log.info("Doing report for: {} - {}", dateFrameStart, dateFrameEnd);	    	
-	    	
-	    	List<Tuple> foundData = entityManager.createQuery(cq).getResultList();
-	    	
-	    	result.forEach(categoryReport -> {
-	    		Optional<Tuple> categoryData = foundData.stream().filter(tuple -> Objects.equals(tuple.get(0), categoryReport.getCategory()==null ? null : categoryReport.getCategory().getId())).findFirst();
-	    		categoryReport.getValues().add(categoryData.isPresent() ? (BigDecimal)categoryData.get().get(1) : BigDecimal.ZERO);
-	    	});
-	    	
-	    	
-			dateFrameStart = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));			
-		}
-		return result;
-	}
+    @Inject
+    private CategoryService categoryService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo,
+            TemporalUnit groupByUnit) {
+        assert dateFrom.before(dateTo);
+
+        List<CategoryReport> result = categoryService.listCategories(userAccount).stream()
+                .map(category -> new CategoryReport(category)).collect(Collectors.toList());
+        result.add(new CategoryReport(null)); // unassigned
+
+        Date dateFrameStart = dateFrom;
+        while (dateFrameStart.before(dateTo)) {
+            Date dateFrameEnd = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    .atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
+            dateFrameEnd = dateFrameEnd.after(dateTo) ? dateTo : dateFrameEnd;
+
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Tuple> cq = cb.createQuery(Tuple.class);
+
+            Root<Transaction> trRoot = cq.from(Transaction.class);
+            Join<Transaction, TransactionSplit> trSplits = trRoot.join("splits");
+
+            cq.multiselect(trSplits.get("category").get("id"), cb.sum(trSplits.<BigDecimal> get("amount")));
+            cq.groupBy(trSplits.get("category").get("id"));
+            cq.where(cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
+                    cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd),
+                    cb.ge(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
+
+            log.info("Doing report for: {} - {}", dateFrameStart, dateFrameEnd);
+
+            List<Tuple> foundDataPlus = entityManager.createQuery(cq).getResultList();
+            result.forEach(categoryReport -> {
+                Optional<Tuple> categoryData = foundDataPlus.stream()
+                        .filter(tuple -> Objects.equals(tuple.get(0),
+                                categoryReport.getCategory() == null ? null : categoryReport.getCategory().getId()))
+                                .findFirst();
+                categoryReport.getValuesPlus()
+                .add(categoryData.isPresent() ? (BigDecimal) categoryData.get().get(1) : BigDecimal.ZERO);
+            } );
+
+            cq.where(cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
+                    cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd),
+                    cb.le(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
+
+            List<Tuple> foundDataMinus = entityManager.createQuery(cq).getResultList();
+            result.forEach(categoryReport -> {
+                Optional<Tuple> categoryData = foundDataMinus.stream()
+                        .filter(tuple -> Objects.equals(tuple.get(0),
+                                categoryReport.getCategory() == null ? null : categoryReport.getCategory().getId()))
+                                .findFirst();
+                categoryReport.getValuesMinus()
+                .add(categoryData.isPresent() ? (BigDecimal) categoryData.get().get(1) : BigDecimal.ZERO);
+            } );
+
+
+            dateFrameStart = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    .atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
+        }
+        return result;
+    }
 
 }
