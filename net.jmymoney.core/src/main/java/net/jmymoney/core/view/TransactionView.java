@@ -10,6 +10,7 @@ import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -63,6 +65,7 @@ public class TransactionView extends VerticalLayout implements View {
 
     private BeanItemContainer<Account> accountContainer;
     private ComboBox accountComboBox;
+    private Label accountBalanceLabel;
 
     private Button saveButton;
 
@@ -79,9 +82,12 @@ public class TransactionView extends VerticalLayout implements View {
         setSizeFull();
         setSpacing(true);
 
+        HorizontalLayout accountInfoLayout = new HorizontalLayout();
+        accountInfoLayout.setSpacing(true);
+        
         accountContainer = new BeanItemContainer<>(Account.class);
 
-        accountComboBox = new ComboBox("Accounts", accountContainer);
+        accountComboBox = new ComboBox("Account", accountContainer);
         accountComboBox.setItemCaptionPropertyId("name");
         accountComboBox.setItemCaptionMode(ItemCaptionMode.PROPERTY);
 
@@ -91,8 +97,15 @@ public class TransactionView extends VerticalLayout implements View {
         accountComboBox.setImmediate(true);
 
         accountComboBox.addValueChangeListener(event -> loadTransactions((Account) event.getProperty().getValue()));
-
-        addComponent(accountComboBox);
+        accountInfoLayout.addComponent(accountComboBox);
+        
+        accountBalanceLabel = new Label();
+        accountBalanceLabel.setCaption("Balance");
+        accountBalanceLabel.setSizeUndefined();
+        accountBalanceLabel.setImmediate(true);
+        accountInfoLayout.addComponent(accountBalanceLabel);
+        
+        addComponent(accountInfoLayout);
 
         transactionContainer = new BeanItemContainer<>(TransactionWrapper.class);
         transactionContainer.addNestedContainerProperty("transaction.timestamp");
@@ -168,7 +181,8 @@ public class TransactionView extends VerticalLayout implements View {
             }
             return null;
         } );
-
+        
+        
         addComponent(transactionTable);
 
         HorizontalLayout transactionActionLayout = new HorizontalLayout();
@@ -309,7 +323,7 @@ public class TransactionView extends VerticalLayout implements View {
         if (selectedItemId != null) {
             selectTransaction(selectedItemId.getTransaction());
             transactionTable.setCurrentPageFirstItemId(transactionTable.getValue());
-        }
+        }        
     }
 
     private void selectTransaction(Transaction transaction) {
@@ -339,6 +353,15 @@ public class TransactionView extends VerticalLayout implements View {
         Collections.reverse(list);
         transactionContainer.addAll(list);
         transactionTable.refreshRowCache();
+        
+        String accountBalance = "0";
+        Optional<TransactionWrapper> lastTransaction = transactionContainer.getItemIds().stream().sorted( (i,j) -> j.getTransaction().getTimestamp().compareTo(i.getTransaction().getTimestamp())).findFirst();        
+        if (lastTransaction.isPresent()) {
+            accountBalance = lastTransaction.get().getAmountRunning().stripTrailingZeros().toPlainString();
+        }
+        accountBalanceLabel.setValue(accountBalance);
+        accountBalanceLabel.markAsDirty();        
+        
         loadTransaction(null);
     }
 

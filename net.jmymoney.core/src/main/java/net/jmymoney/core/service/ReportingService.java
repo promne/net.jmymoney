@@ -22,6 +22,7 @@ import javax.persistence.criteria.Root;
 import org.slf4j.Logger;
 
 import net.jmymoney.core.domain.CategoryReport;
+import net.jmymoney.core.domain.IncomeExpenseTouple;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.entity.UserAccount;
@@ -64,30 +65,29 @@ public class ReportingService {
                     cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd),
                     cb.ge(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
 
-            log.info("Doing report for: {} - {}", dateFrameStart, dateFrameEnd);
-
             List<Tuple> foundDataPlus = entityManager.createQuery(cq).getResultList();
-            result.forEach(categoryReport -> {
-                Optional<Tuple> categoryData = foundDataPlus.stream()
-                        .filter(tuple -> Objects.equals(tuple.get(0),
-                                categoryReport.getCategory() == null ? null : categoryReport.getCategory().getId()))
-                                .findFirst();
-                categoryReport.getValuesPlus()
-                .add(categoryData.isPresent() ? (BigDecimal) categoryData.get().get(1) : BigDecimal.ZERO);
-            } );
 
             cq.where(cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
                     cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd),
                     cb.le(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
 
             List<Tuple> foundDataMinus = entityManager.createQuery(cq).getResultList();
+            
+            
             result.forEach(categoryReport -> {
-                Optional<Tuple> categoryData = foundDataMinus.stream()
-                        .filter(tuple -> Objects.equals(tuple.get(0),
-                                categoryReport.getCategory() == null ? null : categoryReport.getCategory().getId()))
-                                .findFirst();
-                categoryReport.getValuesMinus()
-                .add(categoryData.isPresent() ? (BigDecimal) categoryData.get().get(1) : BigDecimal.ZERO);
+                Optional<Tuple> categoryDataPlus = foundDataPlus.stream()
+                        .filter(tuple -> Objects.equals(tuple.get(0), categoryReport.getCategory() == null ? null : categoryReport.getCategory().getId()))
+                        .findFirst();
+                Optional<Tuple> categoryDataMinus = foundDataMinus.stream()
+                        .filter(tuple -> Objects.equals(tuple.get(0),categoryReport.getCategory() == null ? null : categoryReport.getCategory().getId()))
+                        .findFirst();
+                
+                IncomeExpenseTouple incomeExpenseTouple = new IncomeExpenseTouple(
+                        categoryDataPlus.isPresent() ? (BigDecimal) categoryDataPlus.get().get(1) : BigDecimal.ZERO, 
+                        categoryDataMinus.isPresent() ? (BigDecimal) categoryDataMinus.get().get(1) : BigDecimal.ZERO
+                    );
+                categoryReport.getIncomesAndExpenses().add(incomeExpenseTouple);
+                
             } );
 
 

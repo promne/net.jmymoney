@@ -1,6 +1,5 @@
 package net.jmymoney.core.domain;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,10 +9,8 @@ public class CategoryReport {
 
     private Category category;
 
-    private List<BigDecimal> valuesPlus = new ArrayList<>();
-
-    private List<BigDecimal> valuesMinus = new ArrayList<>();
-
+    private List<IncomeExpenseTouple> incomesAndExpenses = new ArrayList<>();
+    
     public CategoryReport(Category category) {
         super();
         this.category = category;
@@ -27,20 +24,12 @@ public class CategoryReport {
         this.category = category;
     }
 
-    public List<BigDecimal> getValuesPlus() {
-        return valuesPlus;
+    public List<IncomeExpenseTouple> getIncomesAndExpenses() {
+        return incomesAndExpenses;
     }
 
-    public void setValuesPlus(List<BigDecimal> values) {
-        this.valuesPlus = values;
+    public void setIncomesAndExpenses(List<IncomeExpenseTouple> incomesAndExpenses) {
+        this.incomesAndExpenses = incomesAndExpenses;
     }
-
-    public List<BigDecimal> getValuesMinus() {
-        return valuesMinus;
-    }
-
-    public void setValuesMinus(List<BigDecimal> valuesMinus) {
-        this.valuesMinus = valuesMinus;
-    }
-
+    
 }
