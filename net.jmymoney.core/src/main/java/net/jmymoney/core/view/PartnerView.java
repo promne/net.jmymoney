@@ -56,6 +56,7 @@ public class PartnerView extends VerticalLayout implements View {
     private void init() {
         setSizeFull();
         setSpacing(true);
+        setMargin(true);
 
         partnerContainer.setBeanIdProperty(Payee.PROPERTY_ID);
         

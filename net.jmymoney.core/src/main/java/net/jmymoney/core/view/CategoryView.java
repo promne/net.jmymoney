@@ -57,6 +57,7 @@ public class CategoryView extends VerticalLayout implements View {
 	private void init() {
 		setSizeFull();
 		setSpacing(true);
+                setMargin(true);
 	
 		categoryTree = new TreeTable();
 		categoryTree.setSizeFull();

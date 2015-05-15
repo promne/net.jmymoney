@@ -51,6 +51,7 @@ public class AccountView extends VerticalLayout implements View {
 	private void init() {
 		setSizeFull();
 		setSpacing(true);
+		setMargin(true);
 
 		accountTable = new Table();
 		accountTable.setSizeFull();

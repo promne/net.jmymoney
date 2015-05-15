@@ -81,6 +81,7 @@ public class TransactionView extends VerticalLayout implements View {
     private void init() {
         setSizeFull();
         setSpacing(true);
+        setMargin(true);
 
         HorizontalLayout accountInfoLayout = new HorizontalLayout();
         accountInfoLayout.setSpacing(true);

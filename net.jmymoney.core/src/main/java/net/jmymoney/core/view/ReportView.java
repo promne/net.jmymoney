@@ -68,6 +68,7 @@ public class ReportView extends VerticalLayout implements View {
     private void init() {
         setSizeFull();
         setSpacing(true);
+        setMargin(true);
 
         HorizontalLayout filterLayout = new HorizontalLayout();
         filterLayout.setSpacing(true);
