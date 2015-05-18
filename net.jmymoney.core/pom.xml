@@ -108,9 +108,9 @@
 			<version>1.0.0.alpha2</version>
 		</dependency>
 		<dependency>
-			<groupId>org.vaadin.addons</groupId>
-			<artifactId>dcharts-widget</artifactId>
-			<version>1.7.0</version>
+		   <groupId>at.downdrown.vaadinaddons</groupId>
+		   <artifactId>highchartsapi</artifactId>
+		   <version>1.7.2</version>
 		</dependency>
 
 

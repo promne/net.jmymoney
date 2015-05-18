@@ -1,6 +1,7 @@
 package net.jmymoney.core.service;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -58,6 +59,24 @@ public class AccountService {
         cq.where(cb.equal(account.get("userAccount"), userAccount));
         cq.groupBy(account);
 
+        return entityManager.createQuery(cq).getResultList();
+    }
+
+    public List<AccountMetadata> listAccountMetadatas(UserAccount userAccount, Date date) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<AccountMetadata> cq = cb.createQuery(AccountMetadata.class);
+        Root<Account> account = cq.from(Account.class);
+        
+        Subquery<BigDecimal> sq = cq.subquery(BigDecimal.class);
+        Root<Transaction> transaction = sq.from(Transaction.class);
+        Join<Transaction, TransactionSplit> joinSplits = transaction.join("splits");
+        sq.select(cb.sum(joinSplits.get("amount")));
+        sq.where(cb.and(cb.equal(account, transaction.get("account")), cb.lessThanOrEqualTo(transaction.get("timestamp"), date)));
+        
+        cq.select(cb.construct(AccountMetadata.class, account, sq.getSelection()));
+        cq.where(cb.equal(account.get("userAccount"), userAccount));
+        cq.groupBy(account);
+        
         return entityManager.createQuery(cq).getResultList();
     }
 

@@ -4,7 +4,6 @@ import com.vaadin.annotations.Theme;
 import com.vaadin.cdi.CDIUI;
 import com.vaadin.cdi.CDIViewProvider;
 import com.vaadin.navigator.Navigator;
-import com.vaadin.navigator.Navigator.EmptyView;
 import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
@@ -38,6 +37,7 @@ import net.jmymoney.core.theme.ThemeResourceConstatns;
 import net.jmymoney.core.theme.ThemeStyles;
 import net.jmymoney.core.view.AccountView;
 import net.jmymoney.core.view.CategoryView;
+import net.jmymoney.core.view.DashboardView;
 import net.jmymoney.core.view.PartnerView;
 import net.jmymoney.core.view.ReportView;
 import net.jmymoney.core.view.TransactionView;
@@ -148,7 +148,7 @@ public class OneUI extends UI {
         
         navigator = new Navigator(this, contentArea);
         
-        navigator.addView("", new EmptyView()); // TODO: DEFAULT
+        navigator.addView("", navigatorViewProvider.getView(DashboardView.NAME));
         navigator.addProvider(navigatorViewProvider);
         //the views are registered by annotation
         
@@ -157,6 +157,7 @@ public class OneUI extends UI {
         menuContent.addComponent(navigationItemsLayout);
         
         //now add trigger to switch to the view
+        navigationItemsLayout.addComponent(new NavigationButton("Dashboard", DashboardView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton("Accounts", AccountView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton("Transactions", TransactionView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton("Categories", CategoryView.NAME));

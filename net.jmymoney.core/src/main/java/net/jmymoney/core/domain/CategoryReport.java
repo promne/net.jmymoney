@@ -31,5 +31,9 @@ public class CategoryReport {
     public void setIncomesAndExpenses(List<IncomeExpenseTouple> incomesAndExpenses) {
         this.incomesAndExpenses = incomesAndExpenses;
     }
+ 
+    public IncomeExpenseTouple getTotal() {
+        return getIncomesAndExpenses().stream().reduce(new IncomeExpenseTouple(), IncomeExpenseTouple::add);
+    }
     
 }

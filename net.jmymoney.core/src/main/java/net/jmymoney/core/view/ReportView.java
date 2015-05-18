@@ -294,8 +294,4 @@ class CategoryReportRow extends CategoryReport {
         this.generated = generated;
     }
 
-    public IncomeExpenseTouple getTotal() {
-        return getIncomesAndExpenses().stream().reduce(new IncomeExpenseTouple(), IncomeExpenseTouple::add);
-    }
-    
 }
