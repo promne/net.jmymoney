@@ -35,6 +35,7 @@ import net.jmymoney.core.entity.UserAccount;
 import net.jmymoney.core.service.UserAccountService;
 import net.jmymoney.core.theme.ThemeResourceConstatns;
 import net.jmymoney.core.theme.ThemeStyles;
+import net.jmymoney.core.util.ManifestUtils;
 import net.jmymoney.core.view.AccountView;
 import net.jmymoney.core.view.CategoryView;
 import net.jmymoney.core.view.DashboardView;
@@ -121,6 +122,7 @@ public class OneUI extends UI {
         menuTitleLayout.addStyleName(ThemeStyles.MENU_TITLE);
         final Label title = new Label("<h3>JMyMoney</h3>", ContentMode.HTML);
         title.setSizeUndefined();
+        title.setDescription(ManifestUtils.getVersion());
         menuTitleLayout.addComponent(title);
         menuTitleLayout.setExpandRatio(title, 1);
         menuContent.addComponent(menuTitleLayout);

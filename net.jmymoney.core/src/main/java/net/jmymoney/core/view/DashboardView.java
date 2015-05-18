@@ -152,16 +152,18 @@ public class DashboardView extends CssLayout implements View {
         chartConfiguration.setTitle("Top 5 spending categories - last 30 days");
         chartConfiguration.setChartType(ChartType.BAR);
         chartConfiguration.getxAxis().setLabelsEnabled(false);
-
+        
         List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getUserAccount(), new Date(new Date().getTime() - 30*24*60*60*1000L), new Date(), ChronoUnit.MONTHS);
         categoryReport.sort((i,j) -> i.getTotal().getExpense().compareTo(j.getTotal().getExpense()));
         
         categoryReport = categoryReport.stream().filter(
-                p -> p.getCategory()!=null && p.getTotal().getExpense().compareTo(BigDecimal.ZERO) < 0
+                p -> p.getTotal().getExpense().compareTo(BigDecimal.ZERO) < 0
             ).limit(5).sorted((i,j) -> j.getTotal().getExpense().compareTo(i.getTotal().getExpense())).collect(Collectors.toList());
         
         for (CategoryReport cr : categoryReport) {
-            chartConfiguration.getSeriesList().add(new BarChartSeries(cr.getCategory().getName(), Arrays.asList(new BigDecimal[] {cr.getTotal().getExpense().abs()})));
+            String seriesName = cr.getCategory() != null ? cr.getCategory().getName() : "Without category";
+            BarChartSeries series = new BarChartSeries(seriesName, Arrays.asList(new BigDecimal[] {cr.getTotal().getExpense().abs()}));
+            chartConfiguration.getSeriesList().add(series);
         }
         
         try {
