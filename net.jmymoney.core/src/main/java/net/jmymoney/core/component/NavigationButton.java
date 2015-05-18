@@ -1,5 +1,6 @@
 package net.jmymoney.core.component;
 
+import com.vaadin.server.Resource;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.UI;
 
@@ -16,6 +17,11 @@ public class NavigationButton extends Button {
         super.setPrimaryStyleName(ThemeStyles.MENU_ITEM);
     }
 
+    public NavigationButton(String caption, Resource icon, String navigationState) {
+        this(caption, navigationState);
+        setIcon(icon);
+    }
+    
     private void switchView(ClickEvent clickEvent) {
         UI.getCurrent().getNavigator().navigateTo(navigationState);        
     }

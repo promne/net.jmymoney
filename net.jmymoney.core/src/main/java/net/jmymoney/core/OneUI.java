@@ -42,6 +42,7 @@ import net.jmymoney.core.view.DashboardView;
 import net.jmymoney.core.view.PartnerView;
 import net.jmymoney.core.view.ReportView;
 import net.jmymoney.core.view.TransactionView;
+import net.jmymoney.core.view.UserAccountView;
 
 @CDIUI
 @Theme(value = "jmm")
@@ -159,19 +160,21 @@ public class OneUI extends UI {
         menuContent.addComponent(navigationItemsLayout);
         
         //now add trigger to switch to the view
-        navigationItemsLayout.addComponent(new NavigationButton("Dashboard", DashboardView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Accounts", AccountView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Transactions", TransactionView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Categories", CategoryView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Partners", PartnerView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Reports", ReportView.NAME));        
+        navigationItemsLayout.addComponent(new NavigationButton("Dashboard", FontAwesome.HOME, DashboardView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton("Accounts", FontAwesome.BANK, AccountView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton("Transactions", FontAwesome.MONEY, TransactionView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton("Categories", FontAwesome.FILTER, CategoryView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton("Partners", FontAwesome.USERS, PartnerView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton("Reports", FontAwesome.BAR_CHART_O, ReportView.NAME));        
         
         final MenuBar settings = new MenuBar();
         settings.addStyleName(ThemeStyles.USER_MENU);
         final MenuItem settingsItem = settings.addItem(userIdentity.getUserAccount().getUsername(), new ThemeResource(ThemeResourceConstatns.PROFILE_PIC_300), null);
-//        settingsItem.addItem("Edit Profile", null);
+        settingsItem.addItem("Edit Profile", c -> {
+            navigator.navigateTo(UserAccountView.NAME);
+        }).setIcon(FontAwesome.EDIT);
 //        settingsItem.addItem("Preferences", null);
-//        settingsItem.addSeparator();
+        settingsItem.addSeparator();
         settingsItem.addItem("Sign Out", menuItem -> {
             for (UI ui : VaadinSession.getCurrent().getUIs()) {
                 ui.access(() -> {
@@ -181,7 +184,7 @@ public class OneUI extends UI {
             close();
             getSession().close();
             getSession().getSession().invalidate();
-        } );
+        }).setIcon(FontAwesome.BAN);
         menuContent.addComponent(settings);
         
         navigator.addViewChangeListener(new ViewChangeListener() {
