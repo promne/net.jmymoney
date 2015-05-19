@@ -26,10 +26,12 @@ public class TransactionSplit {
 	@ManyToOne
 	@JoinColumn(name="category_id")
 	private Category category;
+        public static final String PROPERTY_CATEGORY = "category";
 
 	@NotNull
 	@Column(name="amount")
 	private BigDecimal amount = BigDecimal.ZERO;
+	public static final String PROPERTY_AMOUNT = "amount";
 	
 	@ManyToOne
 	@NotNull
@@ -45,6 +47,7 @@ public class TransactionSplit {
 
 	@Column(name="note")
 	private String note;
+	public static final String PROPERTY_NOTE = "note";
 	
 	@ManyToOne
 	@JoinColumn(name="split_partner_id")

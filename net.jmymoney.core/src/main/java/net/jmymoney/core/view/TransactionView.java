@@ -27,7 +27,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import net.jmymoney.core.UserIdentity;
-import net.jmymoney.core.component.TransactionField;
+import net.jmymoney.core.component.transaction.TransactionField;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;

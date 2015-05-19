@@ -34,6 +34,7 @@ public class Transaction {
 	@NotNull
 	@Column(name="time_stamp")
 	private Date timestamp;
+        public static final String PROPERTY_TIMESTAMP = "timestamp";
 
 	@OneToMany(mappedBy="transaction", cascade=CascadeType.ALL, fetch=FetchType.EAGER, orphanRemoval=true)
 	private List<TransactionSplit> splits = new ArrayList<>();

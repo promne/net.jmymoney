@@ -20,6 +20,7 @@ public class Category {
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name="id")
 	private Long id;
+        public static final String PROPERTY_ID = "id";
 	
 	@Column(name="name")
 	private String name;
