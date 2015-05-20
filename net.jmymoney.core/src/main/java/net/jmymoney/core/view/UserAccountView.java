@@ -85,18 +85,18 @@ public class UserAccountView extends VerticalLayout implements View {
     }
 
     private void changePassword(ClickEvent clickEvent) {
-        passwordCurrentField.setValidationVisible(false);
-        passwordFirstField.setValidationVisible(false);
-        passwordSecondField.setValidationVisible(false);
         try {
             passwordCurrentField.setValidationVisible(true);
             passwordCurrentField.validate();
+            passwordCurrentField.setValidationVisible(false);
             
             passwordFirstField.setValidationVisible(true);
             passwordFirstField.validate();
+            passwordFirstField.setValidationVisible(false);
             
             passwordSecondField.setValidationVisible(true);
             passwordSecondField.validate();
+            passwordSecondField.setValidationVisible(false);
         } catch (InvalidValueException e) {
             return;
         }
@@ -107,9 +107,6 @@ public class UserAccountView extends VerticalLayout implements View {
 
         Notification.show("Password was changed", Type.HUMANIZED_MESSAGE);
         
-        passwordCurrentField.setValidationVisible(false);
-        passwordFirstField.setValidationVisible(false);
-        passwordSecondField.setValidationVisible(false);        
         passwordCurrentField.setValue("");
         passwordFirstField.setValue("");
         passwordSecondField.setValue("");

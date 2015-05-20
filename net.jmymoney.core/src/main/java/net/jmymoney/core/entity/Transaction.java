@@ -22,69 +22,70 @@ import javax.validation.constraints.NotNull;
 import net.jmymoney.core.entity.listener.TransactionListener;
 
 @Entity
-@EntityListeners({TransactionListener.class})
-@Table(name="transactions")
+@EntityListeners({ TransactionListener.class })
+@Table(name = "transactions")
 public class Transaction {
 
-	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name="id")
-	private Long id;
-	
-	@NotNull
-	@Column(name="time_stamp")
-	private Date timestamp;
-        public static final String PROPERTY_TIMESTAMP = "timestamp";
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
 
-	@OneToMany(mappedBy="transaction", cascade=CascadeType.ALL, fetch=FetchType.EAGER, orphanRemoval=true)
-	private List<TransactionSplit> splits = new ArrayList<>();
-	
-	@ManyToOne
-	@NotNull
-	@JoinColumn(name="account_id")
-	private Account account;
-	
-	public Transaction() {
-		super();
-	}
+    @NotNull
+    @Column(name = "time_stamp")
+    private Date timestamp;
+    public static final String PROPERTY_TIMESTAMP = "timestamp";
 
-	public Long getId() {
-		return id;
-	}
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<TransactionSplit> splits = new ArrayList<>();
+    public static final String PROPERTY_SPLITS = "splits";
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @ManyToOne
+    @NotNull
+    @JoinColumn(name = "account_id")
+    private Account account;
 
-	public Date getTimestamp() {
-		return timestamp;
-	}
+    public Transaction() {
+        super();
+    }
 
-	public void setTimestamp(Date timestamp) {
-		this.timestamp = timestamp;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public List<TransactionSplit> getSplits() {
-		return splits;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public void setSplits(List<TransactionSplit> splits) {
-		this.splits = splits;
-	}
+    public Date getTimestamp() {
+        return timestamp;
+    }
 
-	public Account getAccount() {
-		return account;
-	}
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
 
-	public void setAccount(Account account) {
-		this.account = account;
-	}
+    public List<TransactionSplit> getSplits() {
+        return splits;
+    }
 
-	public BigDecimal getAmount() {
-		return splits.stream().map(TransactionSplit::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-	}
+    public void setSplits(List<TransactionSplit> splits) {
+        this.splits = splits;
+    }
 
-	public boolean isChild() {
-		return splits.stream().anyMatch(split -> split.getParent()!=null);
-	}
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    public BigDecimal getAmount() {
+        return splits.stream().map(TransactionSplit::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public boolean isChild() {
+        return splits.stream().anyMatch(split -> split.getParent() != null);
+    }
 }

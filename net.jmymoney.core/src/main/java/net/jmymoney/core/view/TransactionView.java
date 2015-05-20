@@ -27,7 +27,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import net.jmymoney.core.UserIdentity;
-import net.jmymoney.core.component.transaction.TransactionField;
+import net.jmymoney.core.component.transaction.TransactionFieldWrapper;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
@@ -58,7 +58,7 @@ public class TransactionView extends VerticalLayout implements View {
     private TransactionService transactionService;
 
     @Inject
-    private TransactionField transactionField;
+    private TransactionFieldWrapper transactionField;
 
     private BeanItemContainer<TransactionWrapper> transactionContainer;
     private Table transactionTable;
