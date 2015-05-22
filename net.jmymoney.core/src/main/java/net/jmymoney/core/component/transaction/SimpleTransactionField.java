@@ -4,8 +4,11 @@ import com.vaadin.data.Validator.InvalidValueException;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanContainer;
+import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.data.util.converter.StringToBigDecimalConverter;
+import com.vaadin.server.FontAwesome;
+import com.vaadin.server.Resource;
 import com.vaadin.shared.ui.combobox.FilteringMode;
 import com.vaadin.shared.ui.datefield.Resolution;
 import com.vaadin.ui.AbstractField;
@@ -245,7 +248,17 @@ public class SimpleTransactionField extends CustomField<Transaction> {
     }
 
     private ComboBox createPartnerComboBox() {
-        ComboBox partnerCombo = new ComboBox();
+        ComboBox partnerCombo = new ComboBox() {
+
+            @Override
+            public Resource getItemIcon(Object itemId) {
+                if (((BeanItem<SplitPartner>)getItem(itemId)).getBean() instanceof Account) {
+                    return FontAwesome.BANK;
+                }
+                return null;
+            }
+            
+        }; 
         partnerCombo.setConverter(new Converter<Object, SplitPartner>() {
 
             @Override
@@ -278,13 +291,13 @@ public class SimpleTransactionField extends CustomField<Transaction> {
         });
         partnerCombo.setNewItemsAllowed(true);
         partnerCombo.setNewItemHandler(newItemCaption -> {
-            boolean newItem = true;
-            for (final Object itemId1 : partnerCombo.getItemIds()) {
-                if (newItemCaption.equalsIgnoreCase(partnerCombo.getItemCaption(itemId1))) {
-                    newItem = false;
-                    break;
+            for (final Object itemId : partnerCombo.getItemIds()) {
+                if (newItemCaption.equalsIgnoreCase(partnerCombo.getItemCaption(itemId))) {
+                    partnerCombo.select(itemId);
+                    return;
                 }
-            }
+            }            
+            
             QuestionDialog createPartnerDialog = new QuestionDialog("Add new partner",
                     String.format("Partner <em>%s</em> was not found. Do you want to create it?", newItemCaption));
             createPartnerDialog.setDialogResultListener((dialogResultType, resultValue) -> {

@@ -9,7 +9,6 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanContainer;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.BeanItemContainer;
-import com.vaadin.data.util.GeneratedPropertyContainer;
 import com.vaadin.data.util.ObjectProperty;
 import com.vaadin.data.util.PropertyValueGenerator;
 import com.vaadin.data.util.converter.Converter;
@@ -72,7 +71,7 @@ public class TransactionField extends CustomField<Transaction> {
     private static final String COLUMN_SPLIT_PARTNER = "splitPartner";
     private static final String COLUMN_NOTE = "note";
     private static final String COLUMN_ACTION_GENERATED = "column_action_generated";
-
+    
     private RegexpValidator bigDecimalValidator;
 
     private BeanFieldGroup<Transaction> fieldGroup;
@@ -210,17 +209,6 @@ public class TransactionField extends CustomField<Transaction> {
         layout.setExpandRatio(splitsTableLayout, 1.0f);
 
         return layout;
-    }
-
-    private List<SplitPartner> listSplitPartners() {
-        List<SplitPartner> result = new ArrayList<>();
-        result.addAll(splitPartnerService.listPayees(userIdentity.getUserAccount()));
-        if (getInternalValue() != null) {
-            result.addAll(accountService.list(userIdentity.getUserAccount()).stream().filter(splitPartner -> !splitPartner.getId().equals(getInternalValue().getAccount().getId()))
-                    .collect(Collectors.toList()));
-        }
-        result.sort((i, j) -> i.getName().compareToIgnoreCase(j.getName()));
-        return result;
     }
 
     private void fieldValueChanged() {
@@ -387,30 +375,21 @@ public class TransactionField extends CustomField<Transaction> {
 
     private ComboBox createPartnerComboBox() {
         BeanContainer<Long, SplitPartner> partnerContainer = new BeanContainer<>(SplitPartner.class);
-        partnerContainer.setBeanIdProperty("id");
-        partnerContainer.addAll(listSplitPartners());
+        partnerContainer.setBeanIdProperty(SplitPartner.PROPERTY_ID);
+        refreshSplitPartners(partnerContainer);
 
-        GeneratedPropertyContainer gpc = new GeneratedPropertyContainer(partnerContainer);
-        String propertyIconName = "property_icon";
-        gpc.addGeneratedProperty(propertyIconName, new PropertyValueGenerator<Resource>() {
+        ComboBox partnerCombo = new ComboBox() {
 
             @Override
-            public Resource getValue(Item item, Object itemId, Object propertyId) {
-                if (item instanceof BeanItem && ((BeanItem)item).getBean() instanceof Account ) {
+            public Resource getItemIcon(Object itemId) {
+                if (partnerContainer.getItem(itemId).getBean() instanceof Account) {
                     return FontAwesome.BANK;
                 }
                 return null;
             }
-
-            @Override
-            public Class<Resource> getType() {
-                return Resource.class;
-            }
-        });
-        
-        ComboBox partnerCombo = new ComboBox();
-        partnerCombo.setContainerDataSource(gpc);
-        partnerCombo.setItemIconPropertyId(propertyIconName);
+            
+        };
+        partnerCombo.setContainerDataSource(partnerContainer);
         partnerCombo.setConverter(new Converter<Object, SplitPartner>() {
 
             @Override
@@ -443,23 +422,20 @@ public class TransactionField extends CustomField<Transaction> {
         });
         partnerCombo.setNewItemsAllowed(true);
         partnerCombo.setNewItemHandler(newItemCaption -> {
-            boolean newItem = true;
-            for (final Object itemId1 : partnerCombo.getItemIds()) {
-                if (newItemCaption.equalsIgnoreCase(partnerCombo.getItemCaption(itemId1))) {
-                    newItem = false;
-                    break;
+            for (final Object itemId : partnerCombo.getItemIds()) {
+                if (newItemCaption.equalsIgnoreCase(partnerCombo.getItemCaption(itemId))) {
+                    partnerCombo.select(itemId);
+                    return;
                 }
             }
-            QuestionDialog createPartnerDialog = new QuestionDialog("Add new partner",
-                    String.format("Partner <em>%s</em> was not found. Do you want to create it?", newItemCaption));
+            QuestionDialog createPartnerDialog = new QuestionDialog("Add new partner", String.format("Partner <em>%s</em> was not found. Do you want to create it?", newItemCaption));
             createPartnerDialog.setDialogResultListener((dialogResultType, resultValue) -> {
                 if (DialogResultType.OK.equals(dialogResultType)) {
                     Payee newPartner = new Payee();
                     newPartner.setName(newItemCaption);
                     newPartner.setUserAccount(userIdentity.getUserAccount());
                     splitPartnerService.create(newPartner);
-                    partnerContainer.removeAllItems();
-                    partnerContainer.addAll(listSplitPartners());
+                    refreshSplitPartners(partnerContainer);
                     // TODO I know, it's necessary to update all
                     // combo boxes. Screw that at the moment
                     for (Object itemId1 : partnerCombo.getItemIds()) {
@@ -468,7 +444,7 @@ public class TransactionField extends CustomField<Transaction> {
                             break;
                         }
                     }
-
+                    
                 }
             } );
             createPartnerDialog.show();
@@ -480,4 +456,20 @@ public class TransactionField extends CustomField<Transaction> {
         return partnerCombo;
     }
 
+    private void refreshSplitPartners(BeanContainer<Long, SplitPartner> partnerContainer) {
+        partnerContainer.removeAllItems();
+        partnerContainer.addAll(listSplitPartners());
+    }
+
+    private List<SplitPartner> listSplitPartners() {
+        List<SplitPartner> result = new ArrayList<>();
+        result.addAll(splitPartnerService.listPayees(userIdentity.getUserAccount()));
+        if (getInternalValue() != null) {
+            result.addAll(accountService.list(userIdentity.getUserAccount()).stream().filter(splitPartner -> !splitPartner.getId().equals(getInternalValue().getAccount().getId()))
+                    .collect(Collectors.toList()));
+        }
+        result.sort((i, j) -> i.getName().compareToIgnoreCase(j.getName()));
+        return result;
+    }
+    
 }
