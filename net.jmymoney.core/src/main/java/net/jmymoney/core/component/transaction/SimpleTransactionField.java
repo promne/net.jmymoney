@@ -5,6 +5,7 @@ import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.util.BeanContainer;
 import com.vaadin.data.util.BeanItem;
+import com.vaadin.data.util.ObjectProperty;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.data.util.converter.StringToBigDecimalConverter;
 import com.vaadin.server.FontAwesome;
@@ -12,6 +13,7 @@ import com.vaadin.server.Resource;
 import com.vaadin.shared.ui.combobox.FilteringMode;
 import com.vaadin.shared.ui.datefield.Resolution;
 import com.vaadin.ui.AbstractField;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CssLayout;
@@ -43,6 +45,8 @@ import net.jmymoney.core.service.SplitPartnerService;
 
 public class SimpleTransactionField extends CustomField<Transaction> {
 
+    private static final Object PROPERTY_CATEGORY_DISPLAY_NAME = "property_display_name";
+    
     private BeanFieldGroup<Transaction> transactionFieldGroup;
     private BeanFieldGroup<TransactionSplit> splitFieldGroup;
     
@@ -75,6 +79,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
     @Override
     protected Component initContent() {
         CssLayout layout = new CssLayout();
+        layout.addStyleName("ordered-layout");
 
         simpleDateField = new DateField("Date");
         simpleDateField.setResolution(Resolution.MINUTE);
@@ -128,6 +133,16 @@ public class SimpleTransactionField extends CustomField<Transaction> {
         simpleNoteTextField.setNullRepresentation("");
         splitFieldGroup.bind(simpleNoteTextField, TransactionSplit.PROPERTY_NOTE);
         layout.addComponent(simpleNoteTextField);
+        
+        Button addSplitButton = new Button("Split", event -> {
+            Transaction passTransaction = getValue();
+            passTransaction.getSplits().add(new TransactionSplit());
+            commit(); //nasty autocommit
+            fieldValueChanged();
+        });
+        addSplitButton.setIcon(FontAwesome.RANDOM);
+        layout.addComponent(addSplitButton);
+        
         return layout;
     }
 
@@ -199,7 +214,13 @@ public class SimpleTransactionField extends CustomField<Transaction> {
     private void refreshCategories() {
         BeanContainer<Long, Category> categoryContainer = new BeanContainer<>(Category.class);
         categoryContainer.setBeanIdProperty(Category.PROPERTY_ID);
-        categoryContainer.addAll(categoryService.listCategories(userIdentity.getUserAccount()));
+        
+        for (Category category : categoryService.listCategories(userIdentity.getUserAccount())) {
+            BeanItem<Category> item = categoryContainer.addBean(category);
+            String content = CategoryCaptionGenerator.getCaption(category);
+            item.addItemProperty(PROPERTY_CATEGORY_DISPLAY_NAME, new ObjectProperty<String>(content));            
+        }
+
         simpleCategoryComboBox.setContainerDataSource(categoryContainer);
     }
     
@@ -243,7 +264,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
         });
 
         categoryCombo.setFilteringMode(FilteringMode.CONTAINS);
-        categoryCombo.setItemCaptionPropertyId("name");
+        categoryCombo.setItemCaptionPropertyId(PROPERTY_CATEGORY_DISPLAY_NAME);
         return categoryCombo;
     }
 

@@ -3,7 +3,6 @@ package net.jmymoney.core.component.transaction;
 import com.vaadin.data.Validator.InvalidValueException;
 import com.vaadin.data.util.converter.Converter.ConversionException;
 import com.vaadin.ui.AbstractField;
-import com.vaadin.ui.Button;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CssLayout;
 import com.vaadin.ui.CustomField;
@@ -26,8 +25,6 @@ public class TransactionFieldWrapper extends CustomField<Transaction> {
 
     private CssLayout layout;
 
-    private Button addSplitButton;
-    
     @Override
     protected Component initContent() {
         complexField.addValueChangeListener(l -> fieldValueChanged());
@@ -37,20 +34,6 @@ public class TransactionFieldWrapper extends CustomField<Transaction> {
         layout.setWidth(100, Unit.PERCENTAGE);
         layout.addComponent(complexField);
         layout.addComponent(simpleField);
-
-        addSplitButton = new Button("Add", event -> {
-            ///aaaaa
-            simpleField.commit();
-            Transaction passTransaction = simpleField.getValue();
-            passTransaction.getSplits().add(new TransactionSplit());
-            complexField.setValue(passTransaction);
-            
-            simpleField.setVisible(false);
-            addSplitButton.setVisible(false);
-            complexField.setVisible(true);
-        } );
-        layout.addComponent(addSplitButton);
-        
         return layout;
     }
 
@@ -103,12 +86,17 @@ public class TransactionFieldWrapper extends CustomField<Transaction> {
         }
         complexField.setVisible(visibleComplex);
         simpleField.setVisible(!visibleComplex);
-        addSplitButton.setVisible(!visibleComplex);
         
         getCurrent().setValue(transactionCopy);        
     }
     
     private void fieldValueChanged() {
+        if (simpleField.isVisible() && simpleField.getValue().getSplits().size()>1) {
+            Transaction passTransaction = simpleField.getValue();
+            complexField.setValue(passTransaction);
+            simpleField.setVisible(false);
+            complexField.setVisible(true);
+        }
         fireEvent(new AbstractField.ValueChangeEvent(this));
     }
     

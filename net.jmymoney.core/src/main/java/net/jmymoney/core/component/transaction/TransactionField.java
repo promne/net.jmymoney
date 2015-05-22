@@ -2,7 +2,6 @@ package net.jmymoney.core.component.transaction;
 
 import com.vaadin.data.Buffered;
 import com.vaadin.data.Container;
-import com.vaadin.data.Item;
 import com.vaadin.data.Validator.InvalidValueException;
 import com.vaadin.data.fieldgroup.BeanFieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
@@ -10,7 +9,6 @@ import com.vaadin.data.util.BeanContainer;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.util.ObjectProperty;
-import com.vaadin.data.util.PropertyValueGenerator;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.data.validator.RegexpValidator;
 import com.vaadin.server.FontAwesome;
@@ -304,34 +302,11 @@ public class TransactionField extends CustomField<Transaction> {
         BeanContainer<Long, Category> categoryContainer = new BeanContainer<>(Category.class);
         categoryContainer.setBeanIdProperty("id");
         categoryContainer.addAll(categoryService.listCategories(userIdentity.getUserAccount()));
-
-        PropertyValueGenerator<String> generator = new PropertyValueGenerator<String>() {
-
-            @Override
-            public String getValue(Item item, Object itemId, Object propertyId) {
-                StringBuilder sb = new StringBuilder();
-                buildFullName(sb, ((BeanItem<Category>)item).getBean());
-                return sb.toString();
-            }
-
-            private void buildFullName(StringBuilder sb, Category category) {
-                if (category.getParent() != null) {
-                    buildFullName(sb, category.getParent());
-                    sb.append(" > ");
-                }
-                sb.append(category.getName());
-            }
-            
-            @Override
-            public Class<String> getType() {
-                return String.class;
-            }
-        };
-        
+               
         Object propertyDisplayName = "property_display_name";
         for (Long itemId : categoryContainer.getItemIds()) {
             BeanItem<Category> item = categoryContainer.getItem(itemId);
-            String content = generator.getValue(item, null, null);
+            String content = CategoryCaptionGenerator.getCaption(item.getBean());
             item.addItemProperty(propertyDisplayName, new ObjectProperty<String>(content));
         }
         
