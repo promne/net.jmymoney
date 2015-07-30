@@ -41,6 +41,7 @@ public class TransactionSplit {
 	@ManyToOne
 	@JoinColumn(name="parent_id")
 	private TransactionSplit parent;
+	public static final String PROPERTY_PARENT = "parent";
 
 	@OneToMany(mappedBy="parent", orphanRemoval=true)
 	private Collection<TransactionSplit> children;

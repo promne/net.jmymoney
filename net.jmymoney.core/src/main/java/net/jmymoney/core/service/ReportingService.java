@@ -17,12 +17,15 @@ import javax.persistence.Tuple;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Join;
+import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import javax.persistence.criteria.Subquery;
 
 import org.slf4j.Logger;
 
 import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
+import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.entity.UserAccount;
@@ -40,7 +43,7 @@ public class ReportingService {
     private EntityManager entityManager;
 
     public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo,
-            TemporalUnit groupByUnit) {
+            TemporalUnit groupByUnit, boolean excludeTransfers) {
         assert dateFrom.before(dateTo);
 
         List<CategoryReport> result = categoryService.listCategories(userAccount).stream()
@@ -61,16 +64,22 @@ public class ReportingService {
 
             cq.multiselect(trSplits.get("category").get("id"), cb.sum(trSplits.<BigDecimal> get("amount")));
             cq.groupBy(trSplits.get("category").get("id"));
-            cq.where(cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
-                    cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd),
-                    cb.ge(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
-
+            
+            Predicate basePredicate = cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
+                    cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd));
+            if (excludeTransfers) {
+                Subquery<Account> subquery = cq.subquery(Account.class);
+                Root<Account> subAccount = subquery.from(Account.class);
+                subquery.select(subAccount);
+                subquery.where(cb.equal(subAccount, trSplits.get(TransactionSplit.PROPERTY_SPLIT_PARTNER)));
+                basePredicate = cb.and(basePredicate, cb.exists(subquery).not());
+            }
+            
+            
+            cq.where(cb.and(basePredicate, cb.ge(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
             List<Tuple> foundDataPlus = entityManager.createQuery(cq).getResultList();
 
-            cq.where(cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
-                    cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd),
-                    cb.le(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
-
+            cq.where(cb.and(basePredicate, cb.le(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
             List<Tuple> foundDataMinus = entityManager.createQuery(cq).getResultList();
             
             

@@ -155,7 +155,7 @@ public class ReportView extends VerticalLayout implements View {
                 .with(TemporalAdjusters.firstDayOfNextMonth()).atStartOfDay(ZoneId.systemDefault()).toInstant());
 
         List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate,
-                toDate, temporalUnit);
+                toDate, temporalUnit, true);
         int reportSize = reports.get(0).getIncomesAndExpenses().size();
         Collections.sort(reports, (c1, c2) -> {
             if (c1.getCategory() == null) {

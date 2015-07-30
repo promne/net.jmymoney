@@ -153,7 +153,7 @@ public class DashboardView extends CssLayout implements View {
         chartConfiguration.setChartType(ChartType.BAR);
         chartConfiguration.getxAxis().setLabelsEnabled(false);
         
-        List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getUserAccount(), new Date(new Date().getTime() - 30*24*60*60*1000L), new Date(), ChronoUnit.MONTHS);
+        List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getUserAccount(), new Date(new Date().getTime() - 30*24*60*60*1000L), new Date(), ChronoUnit.MONTHS, true);
         categoryReport.sort((i,j) -> i.getTotal().getExpense().compareTo(j.getTotal().getExpense()));
         
         categoryReport = categoryReport.stream().filter(
