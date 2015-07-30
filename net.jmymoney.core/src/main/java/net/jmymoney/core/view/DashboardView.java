@@ -35,6 +35,8 @@ import at.downdrown.vaadinaddons.highchartsapi.model.series.LineChartSeries;
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.domain.AccountMetadata;
 import net.jmymoney.core.domain.CategoryReport;
+import net.jmymoney.core.i18n.I18nResourceConstant;
+import net.jmymoney.core.i18n.MessagesResourceBundle;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.ReportingService;
 
@@ -43,6 +45,8 @@ public class DashboardView extends CssLayout implements View {
 
     public static final String NAME = "DashboardView";
 
+    private static final int REPORT_NUMBER_OF_DAYS = 30;
+    
     @Inject
     private UserIdentity userIdentity;
 
@@ -51,6 +55,9 @@ public class DashboardView extends CssLayout implements View {
     
     @Inject
     private ReportingService reportingService;
+    
+    @Inject
+    private MessagesResourceBundle messagesResourceBundle;
 
     @PostConstruct
     private void init() {
@@ -65,7 +72,7 @@ public class DashboardView extends CssLayout implements View {
     private void refresh() {
         removeAllComponents();
         
-        Label accountsHeaderLabel = new Label("<h2>Dashboard</h2>", ContentMode.HTML);
+        Label accountsHeaderLabel = new Label("<h2>"+messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD)+"</h2>", ContentMode.HTML);
         addComponent(accountsHeaderLabel);
 
         addComponent(getAccountBalanceChart());
@@ -78,7 +85,7 @@ public class DashboardView extends CssLayout implements View {
         Map<Long, LineChartSeries> accountSeries = new HashMap<>();
               
         ChartConfiguration lineConfiguration = new ChartConfiguration();
-        lineConfiguration.setTitle("Account balance - last 30 day");
+        lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_ACCOUNT_BALANCE_HISTORY, REPORT_NUMBER_OF_DAYS));
         lineConfiguration.setChartType(ChartType.LINE);
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
 
@@ -114,7 +121,7 @@ public class DashboardView extends CssLayout implements View {
 
     private Component getNetWorthHistoryChart() {
         ChartConfiguration lineConfiguration = new ChartConfiguration();
-        lineConfiguration.setTitle("Net worth - last 30 day");
+        lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_NET_WORTH, REPORT_NUMBER_OF_DAYS));
         lineConfiguration.setChartType(ChartType.LINE);
         lineConfiguration.setLegendEnabled(false);
         
@@ -148,17 +155,19 @@ public class DashboardView extends CssLayout implements View {
     }
     
     private Component getTopExpenseCategoriesChart() {
+        int numberOfCategories = 5;
+        
         ChartConfiguration chartConfiguration = new ChartConfiguration();
-        chartConfiguration.setTitle("Top 5 spending categories - last 30 days");
+        chartConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_TOP_CATEGORIES, numberOfCategories, REPORT_NUMBER_OF_DAYS));
         chartConfiguration.setChartType(ChartType.BAR);
         chartConfiguration.getxAxis().setLabelsEnabled(false);
         
-        List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getUserAccount(), new Date(new Date().getTime() - 30*24*60*60*1000L), new Date(), ChronoUnit.MONTHS, true);
+        List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getUserAccount(), new Date(new Date().getTime() - REPORT_NUMBER_OF_DAYS*24*60*60*1000L), new Date(), ChronoUnit.MONTHS, true);
         categoryReport.sort((i,j) -> i.getTotal().getExpense().compareTo(j.getTotal().getExpense()));
         
         categoryReport = categoryReport.stream().filter(
                 p -> p.getTotal().getExpense().compareTo(BigDecimal.ZERO) < 0
-            ).limit(5).sorted((i,j) -> j.getTotal().getExpense().compareTo(i.getTotal().getExpense())).collect(Collectors.toList());
+            ).limit(numberOfCategories).sorted((i,j) -> j.getTotal().getExpense().compareTo(i.getTotal().getExpense())).collect(Collectors.toList());
         
         for (CategoryReport cr : categoryReport) {
             String seriesName = cr.getCategory() != null ? cr.getCategory().getName() : "Without category";
@@ -176,7 +185,7 @@ public class DashboardView extends CssLayout implements View {
     private Component getAccountBalanceChart() {
         List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount());
         ChartConfiguration lineConfiguration = new ChartConfiguration();
-        lineConfiguration.setTitle("Account balance");
+        lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_ACCOUNT_BALANCE));
         lineConfiguration.setChartType(ChartType.BAR);
         lineConfiguration.getxAxis().setLabelsEnabled(false);
 

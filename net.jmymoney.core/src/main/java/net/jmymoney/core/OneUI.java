@@ -32,6 +32,8 @@ import net.jmymoney.core.component.LoginWindow;
 import net.jmymoney.core.component.LoginWindow.LoginResultType;
 import net.jmymoney.core.component.NavigationButton;
 import net.jmymoney.core.entity.UserAccount;
+import net.jmymoney.core.i18n.I18nResourceConstant;
+import net.jmymoney.core.i18n.MessagesResourceBundle;
 import net.jmymoney.core.service.UserAccountService;
 import net.jmymoney.core.theme.ThemeResourceConstatns;
 import net.jmymoney.core.theme.ThemeStyles;
@@ -58,6 +60,9 @@ public class OneUI extends UI {
     @Inject
     private UserAccountService userAccountService;
 
+    @Inject
+    private MessagesResourceBundle messagesResourceBundle;
+    
     private Navigator navigator;
 
     @Override
@@ -160,7 +165,7 @@ public class OneUI extends UI {
         menuContent.addComponent(navigationItemsLayout);
         
         //now add trigger to switch to the view
-        navigationItemsLayout.addComponent(new NavigationButton("Dashboard", FontAwesome.HOME, DashboardView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD), FontAwesome.HOME, DashboardView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton("Accounts", FontAwesome.BANK, AccountView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton("Transactions", FontAwesome.MONEY, TransactionView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton("Categories", FontAwesome.FILTER, CategoryView.NAME));
