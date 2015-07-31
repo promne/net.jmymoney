@@ -5,6 +5,7 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.event.ShortcutAction;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.event.ShortcutListener;
+import com.vaadin.server.FontAwesome;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -16,6 +17,11 @@ import com.vaadin.ui.TextField;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.themes.Runo;
+
+import java.util.Locale;
+
+import net.jmymoney.core.i18n.I18nResourceConstant;
+import net.jmymoney.core.i18n.MessagesResourceBundle;
 
 public class LoginWindow extends Window implements ClickListener {
 	
@@ -57,8 +63,8 @@ public class LoginWindow extends Window implements ClickListener {
 	private final BeanFieldGroup<LoginResult> loginResultBeanFieldGroup = new BeanFieldGroup<>(LoginResult.class);
 	private TextField usernameField;
 	
-	public LoginWindow() {
-		super("Login");
+	public LoginWindow(Locale locale) {
+		super(MessagesResourceBundle.getString(locale, I18nResourceConstant.LOGIN));
 		
 		setModal(true);
 		setResizable(false);
@@ -72,16 +78,16 @@ public class LoginWindow extends Window implements ClickListener {
 			}
 		});
 		
-		buttonLogin.setCaption("Login");
+		buttonLogin.setCaption(MessagesResourceBundle.getString(locale, I18nResourceConstant.LOGIN_DO_LOGIN));
 		buttonLogin.focus();
-//		buttonLogin.setIcon(new ThemeResource(ThemeResourceConstants.ICON_KEY_SMALL));		
+		buttonLogin.setIcon(FontAwesome.UNLOCK_ALT);		
 		buttonLogin.addClickListener(this);
 		buttonLogin.setClickShortcut(KeyCode.ENTER);
 		buttonLogin.addStyleName(Runo.BUTTON_DEFAULT);
 		
 		
-		buttonRegister.setCaption("Register");
-//		buttonRegister.setIcon(new ThemeResource(ThemeResourceConstants.ICON_USER_ADD_SMALL));		
+		buttonRegister.setCaption(MessagesResourceBundle.getString(locale, I18nResourceConstant.LOGIN_DO_REGISTER));
+//		buttonRegister.setIcon(FontAwesome.USER_MD);		
 		buttonRegister.addClickListener(this);		
 		
 		HorizontalLayout buttonsLayout = new HorizontalLayout();
@@ -94,9 +100,9 @@ public class LoginWindow extends Window implements ClickListener {
 
 		
 		FormLayout loginForm = new FormLayout();
-		usernameField = loginResultBeanFieldGroup.buildAndBind("Username", "username", TextField.class);
+		usernameField = loginResultBeanFieldGroup.buildAndBind(MessagesResourceBundle.getString(locale, I18nResourceConstant.UNIVERSAL_USERNAME), "username", TextField.class);
 		loginForm.addComponent(usernameField);
-		PasswordField passwordField = loginResultBeanFieldGroup.buildAndBind("Password", "password", PasswordField.class);
+		PasswordField passwordField = loginResultBeanFieldGroup.buildAndBind(MessagesResourceBundle.getString(locale, I18nResourceConstant.UNIVERSAL_PASSWORD), "password", PasswordField.class);
 		loginForm.addComponent(passwordField);
 		loginResultBeanFieldGroup.setItemDataSource(loginResult);
 		

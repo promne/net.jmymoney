@@ -42,6 +42,7 @@ import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.CategoryService;
 import net.jmymoney.core.service.SplitPartnerService;
+import net.jmymoney.core.theme.ThemeResourceConstatns;
 
 public class SimpleTransactionField extends CustomField<Transaction> {
 
@@ -274,7 +275,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
             @Override
             public Resource getItemIcon(Object itemId) {
                 if (((BeanItem<SplitPartner>)getItem(itemId)).getBean() instanceof Account) {
-                    return FontAwesome.BANK;
+                    return ThemeResourceConstatns.BANK;
                 }
                 return null;
             }

@@ -11,9 +11,7 @@ import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.util.ObjectProperty;
 import com.vaadin.data.util.converter.Converter;
 import com.vaadin.data.validator.RegexpValidator;
-import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Resource;
-import com.vaadin.server.ThemeResource;
 import com.vaadin.shared.ui.combobox.FilteringMode;
 import com.vaadin.shared.ui.datefield.Resolution;
 import com.vaadin.ui.AbstractField;
@@ -141,7 +139,7 @@ public class TransactionField extends CustomField<Transaction> {
         splitsTable.setSizeFull();
 
         splitsTable.addGeneratedColumn(COLUMN_ACTION_GENERATED, (source, itemId, columnId) -> {
-            Button removeSplitButton = new Button(new ThemeResource(ThemeResourceConstatns.DELETE_MEDIUM));
+            Button removeSplitButton = new Button(ThemeResourceConstatns.DELETE);
             removeSplitButton.setStyleName(BaseTheme.BUTTON_LINK);
             removeSplitButton.setDescription("Deletes the split");
             removeSplitButton.addClickListener(event -> {
@@ -358,7 +356,7 @@ public class TransactionField extends CustomField<Transaction> {
             @Override
             public Resource getItemIcon(Object itemId) {
                 if (partnerContainer.getItem(itemId).getBean() instanceof Account) {
-                    return FontAwesome.BANK;
+                    return ThemeResourceConstatns.BANK;
                 }
                 return null;
             }

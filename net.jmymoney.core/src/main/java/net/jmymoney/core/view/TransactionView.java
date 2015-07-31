@@ -15,7 +15,6 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,14 +30,15 @@ import net.jmymoney.core.component.transaction.TransactionFieldWrapper;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
+import net.jmymoney.core.i18n.I18nResourceConstant;
+import net.jmymoney.core.i18n.MessagesResourceBundle;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.TransactionService;
 import net.jmymoney.core.theme.ThemeResourceConstatns;
+import net.jmymoney.core.theme.ThemeStyles;
 
 @CDIView(value = TransactionView.NAME)
 public class TransactionView extends VerticalLayout implements View {
-
-    private static final MathContext MC_ROUND = new MathContext(2);
 
     public static final String NAME = "TransactionView";
 
@@ -59,6 +59,9 @@ public class TransactionView extends VerticalLayout implements View {
 
     @Inject
     private TransactionFieldWrapper transactionField;
+    
+    @Inject
+    private MessagesResourceBundle messagesResourceBundle;
 
     private BeanItemContainer<TransactionWrapper> transactionContainer;
     private Table transactionTable;
@@ -88,11 +91,11 @@ public class TransactionView extends VerticalLayout implements View {
         
         accountContainer = new BeanItemContainer<>(Account.class);
 
-        accountComboBox = new ComboBox("Account", accountContainer);
+        accountComboBox = new ComboBox(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACCOUNT), accountContainer);
         accountComboBox.setItemCaptionPropertyId("name");
         accountComboBox.setItemCaptionMode(ItemCaptionMode.PROPERTY);
 
-        accountComboBox.setInputPrompt("Select account");
+        accountComboBox.setInputPrompt(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_ACCOUNT_SELECT));
         accountComboBox.setNullSelectionAllowed(false);
         accountComboBox.setFilteringMode(FilteringMode.CONTAINS);
         accountComboBox.setImmediate(true);
@@ -101,7 +104,7 @@ public class TransactionView extends VerticalLayout implements View {
         accountInfoLayout.addComponent(accountComboBox);
         
         accountBalanceLabel = new Label();
-        accountBalanceLabel.setCaption("Balance");
+        accountBalanceLabel.setCaption(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_BALANCE));
         accountBalanceLabel.setSizeUndefined();
         accountBalanceLabel.setImmediate(true);
         accountInfoLayout.addComponent(accountBalanceLabel);
@@ -111,14 +114,16 @@ public class TransactionView extends VerticalLayout implements View {
         transactionContainer = new BeanItemContainer<>(TransactionWrapper.class);
         transactionContainer.addNestedContainerProperty("transaction.timestamp");
 
-        transactionTable = new Table("Transactions", transactionContainer);
+        transactionTable = new Table(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_TRANSACTIONS), transactionContainer);
         transactionTable.setSizeFull();
         transactionTable.setSelectable(true);
-        transactionTable.addStyleName("colored-table");
+        transactionTable.addStyleName(ThemeStyles.TABLE_COLORED);
 
         transactionTable.addGeneratedColumn(COLUMN_DATE, (source, itemId, columnId) -> {
-            return DateFormat.getDateInstance().format(((TransactionWrapper) itemId).getTransaction().getTimestamp());
+            return DateFormat.getDateInstance(DateFormat.MEDIUM, messagesResourceBundle.getLocale()).format(((TransactionWrapper) itemId).getTransaction().getTimestamp());
         } );
+        transactionTable.setColumnHeader(COLUMN_DATE, messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_DATE));
+        
         transactionTable.addGeneratedColumn(COLUMN_DETAIL, (source, itemId, columnId) -> {
             Transaction transaction = ((TransactionWrapper) itemId).getTransaction();
             StringBuilder sb = new StringBuilder();
@@ -158,27 +163,33 @@ public class TransactionView extends VerticalLayout implements View {
             }
             return sb.toString();
         } );
+        transactionTable.setColumnHeader(COLUMN_DETAIL, messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_DETAIL));
+        
         transactionTable.addGeneratedColumn(COLUMN_DEPOSIT, (source, itemId, columnId) -> {
             BigDecimal amount = ((TransactionWrapper) itemId).getTransaction().getAmount();
             return amount.signum() != -1 ? amount.stripTrailingZeros().toPlainString() : null;
         } );
+        transactionTable.setColumnHeader(COLUMN_DEPOSIT, messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_DEPOSIT));
+        
         transactionTable.addGeneratedColumn(COLUMN_WITHDRAWAL, (source, itemId, columnId) -> {
             BigDecimal amount = ((TransactionWrapper) itemId).getTransaction().getAmount();
             return amount.signum() == -1 ? amount.negate().stripTrailingZeros().toPlainString() : null;
         } );
+        transactionTable.setColumnHeader(COLUMN_WITHDRAWAL, messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_WITHDRAWL));
+
+        transactionTable.setColumnHeader(COLUMN_AMOUNT_RUNNING, messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_BALANCE));
 
         transactionTable.setColumnCollapsingAllowed(false);
         transactionTable.setSortEnabled(false);
         transactionTable.setVisibleColumns(COLUMN_DATE, COLUMN_DETAIL, COLUMN_DEPOSIT, COLUMN_WITHDRAWAL,
                 COLUMN_AMOUNT_RUNNING);
-        transactionTable.setColumnHeaders("Date", "Detail", "Deposit", "Withdrawal", "Balance");
         transactionTable.setColumnExpandRatio(COLUMN_DETAIL, 1);
         transactionTable.addValueChangeListener(event -> loadTransaction(event.getProperty().getValue() == null ? null
                 : ((TransactionWrapper) event.getProperty().getValue()).getTransaction()));
 
         transactionTable.setCellStyleGenerator((source, itemId, propertyId) -> {
             if (((TransactionWrapper) itemId).getTransaction().getSplits().stream().anyMatch(split -> split.getCategory() == null)) {
-                return ThemeResourceConstatns.TABLE_CELL_STYLE_HIGHLIGHT;
+                return ThemeStyles.TABLE_CELL_STYLE_HIGHLIGHT;
             }
             return null;
         } );
@@ -189,23 +200,23 @@ public class TransactionView extends VerticalLayout implements View {
         HorizontalLayout transactionActionLayout = new HorizontalLayout();
         transactionActionLayout.setSpacing(true);
 
-        createButton = new Button("Create");
+        createButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CREATE), ThemeResourceConstatns.CREATE);
         createButton.addClickListener(event -> createButtonClick());
         transactionActionLayout.addComponent(createButton);
 
-        editButton = new Button("Edit");
+        editButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_EDIT), ThemeResourceConstatns.EDIT);
         editButton.addClickListener(event -> editButtonClick());
         transactionActionLayout.addComponent(editButton);
 
-        saveButton = new Button("Save");
+        saveButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_SAVE), ThemeResourceConstatns.SAVE);
         saveButton.addClickListener(event -> saveButtonClick());
         transactionActionLayout.addComponent(saveButton);
 
-        cancelButton = new Button("Cancel");
+        cancelButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CANCEL), ThemeResourceConstatns.CANCEL);
         cancelButton.addClickListener(event -> cancelButtonClick());
         transactionActionLayout.addComponent(cancelButton);
 
-        deleteButton = new Button("Delete");
+        deleteButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_DELETE), ThemeResourceConstatns.DELETE);
         deleteButton.addClickListener(event -> deleteButtonClick());
         transactionActionLayout.addComponent(deleteButton);
 

@@ -35,7 +35,7 @@ import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
 import net.jmymoney.core.entity.Category;
 import net.jmymoney.core.service.ReportingService;
-import net.jmymoney.core.theme.ThemeResourceConstatns;
+import net.jmymoney.core.theme.ThemeStyles;
 import net.jmymoney.core.util.DateMonthRoundConverter;
 
 @CDIView(value = ReportView.NAME)
@@ -126,7 +126,7 @@ public class ReportView extends VerticalLayout implements View {
             Item item = reportTable.getItem(itemId);
             if (item.getItemProperty(COLUMN_CATEGORY_REPORT).getValue() != null) {
                 if (((CategoryReportRow) item.getItemProperty(COLUMN_CATEGORY_REPORT).getValue()).isGenerated() || COLUMN_SUM_ALL_TIME.equals(propertyId)) {
-                    return ThemeResourceConstatns.TABLE_CELL_STYLE_HIGHLIGHT;
+                    return ThemeStyles.TABLE_CELL_STYLE_HIGHLIGHT;
                 }
             }
             return null;

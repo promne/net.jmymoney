@@ -8,7 +8,6 @@ import com.vaadin.navigator.ViewChangeListener;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
 import com.vaadin.server.Responsive;
-import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.ui.label.ContentMode;
@@ -80,14 +79,14 @@ public class OneUI extends UI {
         CssLayout emptyLoginLayout = new CssLayout();
         emptyLoginLayout.setSizeFull();
         setContent(emptyLoginLayout);
-        final LoginWindow loginWindow = new LoginWindow();
+        final LoginWindow loginWindow = new LoginWindow(messagesResourceBundle.getLocale());
         loginWindow.addCloseListener(closeEvent -> {
             UserAccount userAccount = null;
             if (loginWindow.getLoginResult().getType() == LoginResultType.LOGIN) {
                 userAccount = userAccountService.login(loginWindow.getLoginResult().getUsername(),
                         loginWindow.getLoginResult().getPassword());
                 if (userAccount == null) {
-                    Notification.show("Username or password are invalid.", Type.ERROR_MESSAGE);
+                    Notification.show(messagesResourceBundle.getString(I18nResourceConstant.LOGIN_ERROR_INVALID_CREDENTIALS), Type.ERROR_MESSAGE);
                 }
             } else if (loginWindow.getLoginResult().getType() == LoginResultType.REGISTER) {
                 Notification.show("Registration is not allowed yet (beta).", Type.HUMANIZED_MESSAGE);
@@ -166,15 +165,15 @@ public class OneUI extends UI {
         
         //now add trigger to switch to the view
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD), FontAwesome.HOME, DashboardView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Accounts", FontAwesome.BANK, AccountView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Transactions", FontAwesome.MONEY, TransactionView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Categories", FontAwesome.FILTER, CategoryView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Partners", FontAwesome.USERS, PartnerView.NAME));
-        navigationItemsLayout.addComponent(new NavigationButton("Reports", FontAwesome.BAR_CHART_O, ReportView.NAME));        
+        navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_ACCOUNTS), FontAwesome.BANK, AccountView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.NAVIGATION_TRANSACTIONS), FontAwesome.MONEY, TransactionView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_CATEGORIES), FontAwesome.FILTER, CategoryView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_PARTNERS), FontAwesome.USERS, PartnerView.NAME));
+        navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_REPORTS), FontAwesome.BAR_CHART_O, ReportView.NAME));        
         
         final MenuBar settings = new MenuBar();
         settings.addStyleName(ThemeStyles.USER_MENU);
-        final MenuItem settingsItem = settings.addItem(userIdentity.getUserAccount().getUsername(), new ThemeResource(ThemeResourceConstatns.PROFILE_PIC_300), null);
+        final MenuItem settingsItem = settings.addItem(userIdentity.getUserAccount().getUsername(), ThemeResourceConstatns.PROFILE_PIC_300, null);
         settingsItem.addItem("Edit Profile", c -> {
             navigator.navigateTo(UserAccountView.NAME);
         }).setIcon(FontAwesome.EDIT);

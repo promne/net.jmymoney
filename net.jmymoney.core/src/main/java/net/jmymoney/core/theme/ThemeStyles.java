@@ -22,4 +22,8 @@ public final class ThemeStyles {
 
     public static final String SELECTED = "selected";
     
+    public static final String TABLE_COLORED = "colored-table";
+
+    public static final String TABLE_CELL_STYLE_HIGHLIGHT = "lightyellow";
+    
 }

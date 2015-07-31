@@ -15,7 +15,10 @@ public class MessagesResourceBundle {
     }
     
     public String getString(I18nResourceConstant key, Object... params) {
-        Locale locale = getLocale();
+        return getString(getLocale(), key, params);
+    }
+
+    public static String getString(Locale locale, I18nResourceConstant key, Object... params) {
         String string = ResourceBundle.getBundle("locale.messages", locale).getString(key.getKey());
         if (params.length>0) {
             string = String.format(locale, string, params);
