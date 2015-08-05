@@ -5,6 +5,7 @@ import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.Page;
 import com.vaadin.shared.ui.combobox.FilteringMode;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.Button;
@@ -18,7 +19,6 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -247,7 +247,7 @@ public class TransactionView extends VerticalLayout implements View {
     private void createButtonClick() {
         Transaction newTransaction = new Transaction();
         newTransaction.setAccount((Account) accountComboBox.getValue());
-        newTransaction.setTimestamp(new Date());
+        newTransaction.setTimestamp(Page.getCurrent().getWebBrowser().getCurrentDate());
         newTransaction.getSplits().add(new TransactionSplit());
         loadTransaction(newTransaction);
         transactionField.setEnabled(true);

@@ -3,6 +3,7 @@ package net.jmymoney.core.view;
 import com.vaadin.cdi.CDIView;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.Page;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CssLayout;
@@ -94,9 +95,8 @@ public class DashboardView extends CssLayout implements View {
         lineChartPlotOptions.setDataLabelsEnabled(false);
         
         Instant currentDate = Instant.now();
-        final int numOfDays = 30;
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
-        Instant iterationDate = currentDate.minus(numOfDays-1, ChronoUnit.DAYS);
+        Instant iterationDate = currentDate.minus(REPORT_NUMBER_OF_DAYS-1, ChronoUnit.DAYS);
         while (!iterationDate.isAfter(currentDate)) {
             List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount(), Date.from(iterationDate));
             for (AccountMetadata accountMetadata : accountMetadatas) {
@@ -129,10 +129,10 @@ public class DashboardView extends CssLayout implements View {
         lineConfiguration.setPlotOptions(lineChartPlotOptions);
         lineChartPlotOptions.setDataLabelsEnabled(false);
         
-        Instant currentDate = Instant.now();
-        final int numOfDays = 30;
+        
+        Instant currentDate = Instant.now().plusMillis(Page.getCurrent().getWebBrowser().getRawTimezoneOffset());
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
-        Instant iterationDate = currentDate.minus(numOfDays-1, ChronoUnit.DAYS);
+        Instant iterationDate = currentDate.minus(REPORT_NUMBER_OF_DAYS-1, ChronoUnit.DAYS);
         LineChartSeries series = new LineChartSeries("net worth");
         lineConfiguration.getSeriesList().add(series);
         
