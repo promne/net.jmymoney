@@ -3,6 +3,7 @@ package net.jmymoney.core.service;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.temporal.TemporalUnit;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -38,22 +39,21 @@ public class ReportingService {
 
     @Inject
     private CategoryService categoryService;
+    
+    @Inject AccountService accountService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
-    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo,
-            TemporalUnit groupByUnit, boolean excludeTransfers) {
+    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, Collection<Account> includeAccounts, TemporalUnit groupByUnit, boolean excludeTransfers) {
         assert dateFrom.before(dateTo);
 
-        List<CategoryReport> result = categoryService.listCategories(userAccount).stream()
-                .map(category -> new CategoryReport(category)).collect(Collectors.toList());
+        List<CategoryReport> result = categoryService.listCategories(userAccount).stream().map(category -> new CategoryReport(category)).collect(Collectors.toList());
         result.add(new CategoryReport(null)); // unassigned
 
         Date dateFrameStart = dateFrom;
         while (dateFrameStart.before(dateTo)) {
-            Date dateFrameEnd = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                    .atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
+            Date dateFrameEnd = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
             dateFrameEnd = dateFrameEnd.after(dateTo) ? dateTo : dateFrameEnd;
 
             CriteriaBuilder cb = entityManager.getCriteriaBuilder();
@@ -65,13 +65,12 @@ public class ReportingService {
             cq.multiselect(trSplits.get("category").get("id"), cb.sum(trSplits.<BigDecimal> get("amount")));
             cq.groupBy(trSplits.get("category").get("id"));
             
-            Predicate basePredicate = cb.and(cb.equal(trRoot.get("account").get("userAccount"), userAccount),
-                    cb.between(trRoot.get("timestamp"), dateFrameStart, dateFrameEnd));
+            Predicate basePredicate = cb.and(cb.equal(trRoot.get(Transaction.PROPERTY_ACCOUNT).get("userAccount"), userAccount), cb.between(trRoot.get(Transaction.PROPERTY_TIMESTAMP), dateFrameStart, dateFrameEnd), trRoot.get(Transaction.PROPERTY_ACCOUNT).in(includeAccounts));
             if (excludeTransfers) {
                 Subquery<Account> subquery = cq.subquery(Account.class);
                 Root<Account> subAccount = subquery.from(Account.class);
                 subquery.select(subAccount);
-                subquery.where(cb.equal(subAccount, trSplits.get(TransactionSplit.PROPERTY_SPLIT_PARTNER)));
+                subquery.where(cb.and(cb.equal(subAccount, trSplits.get(TransactionSplit.PROPERTY_SPLIT_PARTNER)), subAccount.in(includeAccounts)));
                 basePredicate = cb.and(basePredicate, cb.exists(subquery).not());
             }
             
@@ -103,7 +102,11 @@ public class ReportingService {
             dateFrameStart = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
                     .atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
         }
-        return result;
+        return result;        
+    }
+    
+    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, boolean excludeTransfers) {
+        return getCategoryReport(userAccount, dateFrom, dateTo, accountService.list(userAccount), groupByUnit, excludeTransfers);
     }
 
 }

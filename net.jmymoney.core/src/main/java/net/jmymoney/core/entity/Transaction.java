@@ -44,6 +44,7 @@ public class Transaction {
     @NotNull
     @JoinColumn(name = "account_id")
     private Account account;
+    public static final String PROPERTY_ACCOUNT = "account";
 
     public Transaction() {
         super();

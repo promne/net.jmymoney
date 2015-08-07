@@ -2,13 +2,20 @@ package net.jmymoney.core.view;
 
 import com.vaadin.cdi.CDIView;
 import com.vaadin.data.Item;
+import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.shared.ui.datefield.Resolution;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.ComboBox;
+import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.Layout;
+import com.vaadin.ui.OptionGroup;
+import com.vaadin.ui.PopupView;
+import com.vaadin.ui.PopupView.Content;
 import com.vaadin.ui.TreeTable;
 import com.vaadin.ui.VerticalLayout;
 
@@ -20,9 +27,11 @@ import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -33,7 +42,9 @@ import org.slf4j.Logger;
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
+import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Category;
+import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.ReportingService;
 import net.jmymoney.core.theme.ThemeStyles;
 import net.jmymoney.core.util.DateMonthRoundConverter;
@@ -61,8 +72,13 @@ public class ReportView extends VerticalLayout implements View {
 
     @Inject
     private ReportingService reportingService;
+    
+    @Inject
+    private AccountService accountService;
 
     private TreeTable reportTable;
+
+    private OptionGroup filterAccounts;
 
     @PostConstruct
     private void init() {
@@ -96,6 +112,47 @@ public class ReportView extends VerticalLayout implements View {
         filterToDate.addValueChangeListener(event -> filterChanged());
         filterLayout.addComponent(filterToDate);
 
+        
+        filterAccounts = new OptionGroup();
+        filterAccounts.setItemCaptionPropertyId(Account.PROPERTY_NAME);
+        filterAccounts.setMultiSelect(true);
+
+        String selectedAccounts = "Click to select accounts";
+        Layout accountsSelectionLayout = new VerticalLayout(new Label(selectedAccounts));
+        accountsSelectionLayout.addComponent(new Button("Select all", event -> filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i))));
+        accountsSelectionLayout.addComponent(filterAccounts);
+        
+        PopupView accountSelectionView = new PopupView(new Content() {
+            
+            @Override
+            public Component getPopupComponent() {
+                return accountsSelectionLayout;
+            }
+            
+            @Override
+            public String getMinimizedValueAsHTML() {
+                Collection<Account> selected = (Collection<Account>) filterAccounts.getValue();
+                String result = "None";
+                if (!selected.isEmpty()) {
+                    if (selected.size()==filterAccounts.getItemIds().size()) {
+                        result = "All";
+                    } else {
+                        result = selected.stream().map(Account::getName).collect(Collectors.joining(", "));
+                        if (result.length() > 25) {
+                            result = result.substring(0, 25) + "...";
+                        }
+                    }
+                }
+                return selectedAccounts + "<br/>" + result;
+            }
+        });
+        accountSelectionView.addPopupVisibilityListener(event -> {if (!event.isPopupVisible()) {
+            filterChanged();
+        }});
+        
+        
+        filterLayout.addComponent(accountSelectionView);
+        
         addComponent(filterLayout);
 
         reportTable = new TreeTable("Report - incomes and expenses");
@@ -154,8 +211,14 @@ public class ReportView extends VerticalLayout implements View {
         Date toDate = Date.from(filterToDate.getValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
                 .with(TemporalAdjusters.firstDayOfNextMonth()).atStartOfDay(ZoneId.systemDefault()).toInstant());
 
-        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate,
-                toDate, temporalUnit, true);
+        reportTable.removeAllItems();
+        
+        Collection<Account> selectedAccountsForReport = (Collection<Account>)filterAccounts.getValue();
+        if (selectedAccountsForReport.isEmpty()) {
+            return;
+        }
+        
+        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate, toDate, selectedAccountsForReport, temporalUnit, true);
         int reportSize = reports.get(0).getIncomesAndExpenses().size();
         Collections.sort(reports, (c1, c2) -> {
             if (c1.getCategory() == null) {
@@ -166,8 +229,6 @@ public class ReportView extends VerticalLayout implements View {
             }
             return c1.getCategory().getName().compareToIgnoreCase(c2.getCategory().getName());
         } );
-
-        reportTable.removeAllItems();
 
         // TODO: smarter replace
         for (int genColumnId = 0; reportTable.getColumnGenerator(COLUMN_DATE + genColumnId) != null; genColumnId++) {
@@ -254,6 +315,10 @@ public class ReportView extends VerticalLayout implements View {
     
     @Override
     public void enter(ViewChangeEvent event) {
+        //refreshAccounts
+        filterAccounts.setContainerDataSource(new BeanItemContainer<>(Account.class, accountService.list(userIdentity.getUserAccount())));
+        filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i));
+        
         filterChanged();
     }
 
