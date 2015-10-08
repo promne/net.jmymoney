@@ -6,8 +6,9 @@ import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.server.Page;
 import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.CssLayout;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.VerticalLayout;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import at.downdrown.vaadinaddons.highchartsapi.exceptions.HighChartsException;
 import at.downdrown.vaadinaddons.highchartsapi.model.Axis.AxisValueType;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartType;
+import at.downdrown.vaadinaddons.highchartsapi.model.data.HighChartsData;
 import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.LineChartPlotOptions;
 import at.downdrown.vaadinaddons.highchartsapi.model.series.BarChartSeries;
 import at.downdrown.vaadinaddons.highchartsapi.model.series.LineChartSeries;
@@ -40,9 +42,10 @@ import net.jmymoney.core.i18n.I18nResourceConstant;
 import net.jmymoney.core.i18n.MessagesResourceBundle;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.ReportingService;
+import net.jmymoney.tools.highcharts.BigDecimalData;
 
 @CDIView(value = DashboardView.NAME)
-public class DashboardView extends CssLayout implements View {
+public class DashboardView extends VerticalLayout implements View {
 
     public static final String NAME = "DashboardView";
 
@@ -63,6 +66,7 @@ public class DashboardView extends CssLayout implements View {
     @PostConstruct
     private void init() {
         setSizeFull();
+        setMargin(true);
     }
 
     @Override
@@ -76,14 +80,29 @@ public class DashboardView extends CssLayout implements View {
         Label accountsHeaderLabel = new Label("<h2>"+messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD)+"</h2>", ContentMode.HTML);
         addComponent(accountsHeaderLabel);
 
-        addComponent(getAccountBalanceChart());
-        addComponent(getTopExpenseCategoriesChart());
-        addComponent(getAccountBalanceHistoryChart());
-        addComponent(getNetWorthHistoryChart());
+        VerticalLayout dashContent = new VerticalLayout();
+        dashContent.setSizeFull();
+        addComponent(dashContent);
+        setExpandRatio(dashContent, 1.0f);
+                
+        HorizontalLayout upperDash = new HorizontalLayout();
+        upperDash.addComponent(sizeAccordingly(getAccountBalanceChart()));
+        upperDash.addComponent(sizeAccordingly(getTopExpenseCategoriesChart()));
+        dashContent.addComponent(sizeAccordingly(upperDash));
+        
+        HorizontalLayout lowerDash = new HorizontalLayout();
+        lowerDash.addComponent(sizeAccordingly(getAccountBalanceHistoryChart()));
+        lowerDash.addComponent(sizeAccordingly(getNetWorthHistoryChart()));
+        dashContent.addComponent(sizeAccordingly(lowerDash));
+    }
+    
+    private Component sizeAccordingly(Component component) {
+        component.setSizeFull();
+        return component;
     }
     
     private Component getAccountBalanceHistoryChart() {
-        Map<Long, LineChartSeries> accountSeries = new HashMap<>();
+        Map<Long, List<HighChartsData>> accountSeries = new HashMap<>();
               
         ChartConfiguration lineConfiguration = new ChartConfiguration();
         lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_ACCOUNT_BALANCE_HISTORY, REPORT_NUMBER_OF_DAYS));
@@ -100,13 +119,14 @@ public class DashboardView extends CssLayout implements View {
         while (!iterationDate.isAfter(currentDate)) {
             List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount(), Date.from(iterationDate));
             for (AccountMetadata accountMetadata : accountMetadatas) {
-                LineChartSeries series = accountSeries.get(accountMetadata.getAccount().getId());
-                if (series==null) {
-                    series = new LineChartSeries(accountMetadata.getAccount().getName());
-                    accountSeries.put(accountMetadata.getAccount().getId(), series);
+                List<HighChartsData> seriesData = accountSeries.get(accountMetadata.getAccount().getId());
+                if (seriesData == null) {
+                    seriesData = new ArrayList<>();
+                    LineChartSeries series = new LineChartSeries(accountMetadata.getAccount().getName(), seriesData);
                     lineConfiguration.getSeriesList().add(series);
+                    accountSeries.put(accountMetadata.getAccount().getId(), seriesData);
                 }
-                series.getData().add(accountMetadata.getBalance());
+                seriesData.add(new BigDecimalData(accountMetadata.getBalance()));
             }
             lineConfiguration.getxAxis().getCategories().add(dateFormatter.format(LocalDateTime.ofInstant(iterationDate, ZoneId.systemDefault())));
             iterationDate = iterationDate.plus(1, ChronoUnit.DAYS);
@@ -133,7 +153,8 @@ public class DashboardView extends CssLayout implements View {
         Instant currentDate = Instant.now().plusMillis(Page.getCurrent().getWebBrowser().getRawTimezoneOffset());
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
         Instant iterationDate = currentDate.minus(REPORT_NUMBER_OF_DAYS-1, ChronoUnit.DAYS);
-        LineChartSeries series = new LineChartSeries("net worth");
+        List<HighChartsData> seriesData = new ArrayList<>();
+        LineChartSeries series = new LineChartSeries("net worth", seriesData);
         lineConfiguration.getSeriesList().add(series);
         
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
@@ -141,7 +162,7 @@ public class DashboardView extends CssLayout implements View {
         while (!iterationDate.isAfter(currentDate)) {
             List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount(), Date.from(iterationDate));
             
-            series.getData().add(accountMetadatas.stream().map(m -> m.getBalance()).reduce(BigDecimal.ZERO, BigDecimal::add));
+            seriesData.add(new BigDecimalData(accountMetadatas.stream().map(m -> m.getBalance()).reduce(BigDecimal.ZERO, BigDecimal::add)));
             
             lineConfiguration.getxAxis().getCategories().add(dateFormatter.format(LocalDateTime.ofInstant(iterationDate, ZoneId.systemDefault())));
             iterationDate = iterationDate.plus(1, ChronoUnit.DAYS);
@@ -171,8 +192,9 @@ public class DashboardView extends CssLayout implements View {
         
         for (CategoryReport cr : categoryReport) {
             String seriesName = cr.getCategory() != null ? cr.getCategory().getName() : "Without category";
-            BarChartSeries series = new BarChartSeries(seriesName, Arrays.asList(new BigDecimal[] {cr.getTotal().getExpense().abs()}));
-            chartConfiguration.getSeriesList().add(series);
+            List<HighChartsData> seriesData = new ArrayList<>(1);
+            seriesData.add(new BigDecimalData(cr.getTotal().getExpense().abs()));
+            chartConfiguration.getSeriesList().add(new BarChartSeries(seriesName, seriesData));
         }
         
         try {
@@ -189,14 +211,17 @@ public class DashboardView extends CssLayout implements View {
         lineConfiguration.setChartType(ChartType.BAR);
         lineConfiguration.getxAxis().setLabelsEnabled(false);
 
+        for (AccountMetadata accountMetadata : accountMetadatas) {
+            List<HighChartsData> seriesData = new ArrayList<>(1);
+            seriesData.add(new BigDecimalData(accountMetadata.getBalance()));
+            lineConfiguration.getSeriesList().add(new BarChartSeries(accountMetadata.getAccount().getName(), seriesData));
+        }
         
-        accountMetadatas.forEach(m -> lineConfiguration.getSeriesList().add(
-                new BarChartSeries(m.getAccount().getName(), Arrays.asList(new BigDecimal[] {m.getBalance()}))
-              ));
         try {
             return HighChartFactory.renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
     }
+    
 }
