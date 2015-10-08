@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -41,6 +42,7 @@ import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.CategoryService;
+import net.jmymoney.core.service.RecommendationService;
 import net.jmymoney.core.service.SplitPartnerService;
 import net.jmymoney.core.theme.ThemeResourceConstatns;
 
@@ -58,6 +60,8 @@ public class SimpleTransactionField extends CustomField<Transaction> {
     private TextField simpleAmountTextField;
     private TextField simpleNoteTextField;
 
+    private boolean ignoreTriggers = false;
+    
     @Inject
     private CategoryService categoryService;
 
@@ -67,6 +71,9 @@ public class SimpleTransactionField extends CustomField<Transaction> {
     @Inject
     private AccountService accountService;
 
+    @Inject
+    private RecommendationService recommendationService;
+    
     @Inject
     private UserIdentity userIdentity;
     
@@ -158,6 +165,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
 
     @Override
     protected void setInternalValue(Transaction newValue) {
+        ignoreTriggers = true;
         super.setInternalValue(newValue);
         
         TransactionSplit splitItem = null;
@@ -176,6 +184,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
             transactionType = TransactionType.DEPOSIT;
         }
         simpleTransactionTypeComboBox.setValue(transactionType);
+        ignoreTriggers = false;
     }
 
     
@@ -343,6 +352,17 @@ public class SimpleTransactionField extends CustomField<Transaction> {
             createPartnerDialog.show();
         } );
 
+        partnerCombo.addValueChangeListener(event -> {
+            //try to guess most used category for this
+            if (!ignoreTriggers && simpleCategoryComboBox.getValue() == null) {
+                SplitPartner splitPartner = ((BeanItem<SplitPartner>)simplePartnerComboBox.getItem(event.getProperty().getValue())).getBean();
+                Optional<Category> categoryForPartner = recommendationService.getCategoryForPartner(getInternalValue().getAccount(), splitPartner, simpleDateField.getValue());
+                if (categoryForPartner.isPresent()) {
+                    simpleCategoryComboBox.select(categoryForPartner.get().getId());
+                }
+            }
+        });
+        
         partnerCombo.setFilteringMode(FilteringMode.CONTAINS);
         partnerCombo.setItemCaptionPropertyId("name");
         return partnerCombo;

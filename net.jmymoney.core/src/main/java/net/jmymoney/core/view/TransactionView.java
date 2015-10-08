@@ -247,7 +247,14 @@ public class TransactionView extends VerticalLayout implements View {
     private void createButtonClick() {
         Transaction newTransaction = new Transaction();
         newTransaction.setAccount((Account) accountComboBox.getValue());
-        newTransaction.setTimestamp(Page.getCurrent().getWebBrowser().getCurrentDate());
+        
+        Optional<TransactionWrapper> selectedTransaction = getSelectedTransaction();
+        if (selectedTransaction.isPresent()) {
+            newTransaction.setTimestamp(selectedTransaction.get().getTransaction().getTimestamp());
+        } else {
+            newTransaction.setTimestamp(Page.getCurrent().getWebBrowser().getCurrentDate());
+        }
+        
         newTransaction.getSplits().add(new TransactionSplit());
         loadTransaction(newTransaction);
         transactionField.setEnabled(true);
@@ -389,6 +396,10 @@ public class TransactionView extends VerticalLayout implements View {
         saveButton.setEnabled(false);
     }
 
+    private Optional<TransactionWrapper> getSelectedTransaction() {
+        return Optional.ofNullable((TransactionWrapper)transactionTable.getValue());
+    }
+    
     @Override
     public void enter(ViewChangeEvent event) {
         // nothing to do

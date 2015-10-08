@@ -26,12 +26,13 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
-import at.downdrown.vaadinaddons.highchartsapi.HighChartFactory;
+import at.downdrown.vaadinaddons.highchartsapi.HighChart;
 import at.downdrown.vaadinaddons.highchartsapi.exceptions.HighChartsException;
 import at.downdrown.vaadinaddons.highchartsapi.model.Axis.AxisValueType;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartType;
 import at.downdrown.vaadinaddons.highchartsapi.model.data.HighChartsData;
+import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.HighChartsPlotOptionsImpl.Steps;
 import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.LineChartPlotOptions;
 import at.downdrown.vaadinaddons.highchartsapi.model.series.BarChartSeries;
 import at.downdrown.vaadinaddons.highchartsapi.model.series.LineChartSeries;
@@ -86,11 +87,15 @@ public class DashboardView extends VerticalLayout implements View {
         setExpandRatio(dashContent, 1.0f);
                 
         HorizontalLayout upperDash = new HorizontalLayout();
+        upperDash.setSpacing(true);
+        upperDash.setMargin(true);
         upperDash.addComponent(sizeAccordingly(getAccountBalanceChart()));
         upperDash.addComponent(sizeAccordingly(getTopExpenseCategoriesChart()));
         dashContent.addComponent(sizeAccordingly(upperDash));
         
         HorizontalLayout lowerDash = new HorizontalLayout();
+        lowerDash.setSpacing(true);
+        lowerDash.setMargin(true);
         lowerDash.addComponent(sizeAccordingly(getAccountBalanceHistoryChart()));
         lowerDash.addComponent(sizeAccordingly(getNetWorthHistoryChart()));
         dashContent.addComponent(sizeAccordingly(lowerDash));
@@ -133,7 +138,7 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return HighChartFactory.renderChart(lineConfiguration);
+            return renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -146,6 +151,7 @@ public class DashboardView extends VerticalLayout implements View {
         lineConfiguration.setLegendEnabled(false);
         
         LineChartPlotOptions lineChartPlotOptions = new LineChartPlotOptions();
+        lineChartPlotOptions.setSteps(Steps.FALSE);
         lineConfiguration.setPlotOptions(lineChartPlotOptions);
         lineChartPlotOptions.setDataLabelsEnabled(false);
         
@@ -169,7 +175,7 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return HighChartFactory.renderChart(lineConfiguration);
+            return renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -198,7 +204,7 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return HighChartFactory.renderChart(chartConfiguration);
+            return renderChart(chartConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -218,10 +224,24 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return HighChartFactory.renderChart(lineConfiguration);
+            return renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
     }
+    
+    public static HighChart renderChart(ChartConfiguration configuration) throws HighChartsException {
+        //TODO instead of HighChartFactory, because it puts step variable into queotes 
+        
+        HighChart tempChart = new HighChart();
+        String highChartValue = configuration.getHighChartValue();
+        
+        highChartValue = highChartValue.replaceAll("step: 'FALSE'", "step: false");
+        highChartValue = highChartValue.replaceAll("step: 'TRUE'", "step: true");
+        
+        tempChart.setChartoptions(highChartValue);
+        tempChart.setChartConfiguration(configuration);
+        return tempChart;
+    }    
     
 }
