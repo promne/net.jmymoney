@@ -24,6 +24,7 @@ public class Category {
 	
 	@Column(name="name")
 	private String name;
+	public static final String PROPERTY_NAME = "name";
 	
 	@ManyToOne
 	@JoinColumn(name="parent_id")

@@ -15,108 +15,110 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 @Entity
-@Table(name="transaction_splits")
+@Table(name = "transaction_splits")
 public class TransactionSplit {
 
-	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name="id")
-	private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+    public static final String PROPERTY_ID = "id";
 
-	@ManyToOne
-	@JoinColumn(name="category_id")
-	private Category category;
-        public static final String PROPERTY_CATEGORY = "category";
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private Category category;
+    public static final String PROPERTY_CATEGORY = "category";
 
-	@NotNull
-	@Column(name="amount")
-	private BigDecimal amount = BigDecimal.ZERO;
-	public static final String PROPERTY_AMOUNT = "amount";
-	
-	@ManyToOne
-	@NotNull
-	@JoinColumn(name="transaction_id")
-	private Transaction transaction;
-	
-	@ManyToOne
-	@JoinColumn(name="parent_id")
-	private TransactionSplit parent;
-	public static final String PROPERTY_PARENT = "parent";
+    @NotNull
+    @Column(name = "amount")
+    private BigDecimal amount = BigDecimal.ZERO;
+    public static final String PROPERTY_AMOUNT = "amount";
 
-	@OneToMany(mappedBy="parent", orphanRemoval=true)
-	private Collection<TransactionSplit> children;
+    @ManyToOne
+    @NotNull
+    @JoinColumn(name = "transaction_id")
+    private Transaction transaction;
+    public static final String PROPERTY_TRANSACTION = "transaction";
 
-	@Column(name="note")
-	private String note;
-	public static final String PROPERTY_NOTE = "note";
-	
-	@ManyToOne
-	@JoinColumn(name="split_partner_id")
-	private SplitPartner splitPartner;
-	public static final String PROPERTY_SPLIT_PARTNER = "splitPartner";
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private TransactionSplit parent;
+    public static final String PROPERTY_PARENT = "parent";
 
-	public Long getId() {
-		return id;
-	}
+    @OneToMany(mappedBy = "parent", orphanRemoval = true)
+    private Collection<TransactionSplit> children;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    @Column(name = "note")
+    private String note;
+    public static final String PROPERTY_NOTE = "note";
 
-	public SplitPartner getSplitPartner() {
-		return splitPartner;
-	}
+    @ManyToOne
+    @JoinColumn(name = "split_partner_id")
+    private SplitPartner splitPartner;
+    public static final String PROPERTY_SPLIT_PARTNER = "splitPartner";
 
-	public void setSplitPartner(SplitPartner splitPartner) {
-		this.splitPartner = splitPartner;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public Category getCategory() {
-		return category;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public void setCategory(Category category) {
-		this.category = category;
-	}
+    public SplitPartner getSplitPartner() {
+        return splitPartner;
+    }
 
-	public BigDecimal getAmount() {
-		return amount;
-	}
+    public void setSplitPartner(SplitPartner splitPartner) {
+        this.splitPartner = splitPartner;
+    }
 
-	public void setAmount(BigDecimal amount) {
-		this.amount = amount;
-	}
+    public Category getCategory() {
+        return category;
+    }
 
-	public TransactionSplit getParent() {
-		return parent;
-	}
+    public void setCategory(Category category) {
+        this.category = category;
+    }
 
-	public void setParent(TransactionSplit parent) {
-		this.parent = parent;
-	}
+    public BigDecimal getAmount() {
+        return amount;
+    }
 
-	public Collection<TransactionSplit> getChildren() {
-		return children;
-	}
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
 
-	public void setChildren(Collection<TransactionSplit> children) {
-		this.children = children;
-	}
+    public TransactionSplit getParent() {
+        return parent;
+    }
 
-	public Transaction getTransaction() {
-		return transaction;
-	}
+    public void setParent(TransactionSplit parent) {
+        this.parent = parent;
+    }
 
-	public void setTransaction(Transaction transaction) {
-		this.transaction = transaction;
-	}
+    public Collection<TransactionSplit> getChildren() {
+        return children;
+    }
 
-	public String getNote() {
-		return note;
-	}
+    public void setChildren(Collection<TransactionSplit> children) {
+        this.children = children;
+    }
 
-	public void setNote(String note) {
-		this.note = note;
-	}
+    public Transaction getTransaction() {
+        return transaction;
+    }
+
+    public void setTransaction(Transaction transaction) {
+        this.transaction = transaction;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
 
 }

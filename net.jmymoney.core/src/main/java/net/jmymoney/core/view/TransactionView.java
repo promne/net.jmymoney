@@ -28,6 +28,8 @@ import javax.inject.Inject;
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.component.transaction.TransactionFieldWrapper;
 import net.jmymoney.core.entity.Account;
+import net.jmymoney.core.entity.Payee;
+import net.jmymoney.core.entity.SplitPartner;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.i18n.I18nResourceConstant;
@@ -193,7 +195,18 @@ public class TransactionView extends VerticalLayout implements View {
             }
             return null;
         } );
-        
+
+        transactionTable.addItemClickListener(event -> {
+            if (event.isDoubleClick() && COLUMN_DETAIL==event.getPropertyId()) {
+                Transaction transaction = ((TransactionWrapper)event.getItemId()).getTransaction();
+                if (transaction.getSplits().size()==1) {
+                        SplitPartner splitPartner = transaction.getSplits().get(0).getSplitPartner();
+                        if (splitPartner instanceof Payee) {
+                            PartnerView.navigateWithPartner((Payee)splitPartner);
+                        }
+                }
+            }
+        });
         
         addComponent(transactionTable);
 
@@ -248,7 +261,7 @@ public class TransactionView extends VerticalLayout implements View {
         Transaction newTransaction = new Transaction();
         newTransaction.setAccount((Account) accountComboBox.getValue());
         
-        Optional<TransactionWrapper> selectedTransaction = getSelectedTransaction();
+        Optional<TransactionWrapper> selectedTransaction = getSelectedTransactionWrapper();
         if (selectedTransaction.isPresent()) {
             newTransaction.setTimestamp(selectedTransaction.get().getTransaction().getTimestamp());
         } else {
@@ -396,8 +409,16 @@ public class TransactionView extends VerticalLayout implements View {
         saveButton.setEnabled(false);
     }
 
-    private Optional<TransactionWrapper> getSelectedTransaction() {
+    private Optional<TransactionWrapper> getSelectedTransactionWrapper() {
         return Optional.ofNullable((TransactionWrapper)transactionTable.getValue());
+    }
+
+    private Optional<Transaction> getSelectedTransaction() {
+        TransactionWrapper transactionWrapper = (TransactionWrapper)transactionTable.getValue();
+        if (transactionWrapper == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(transactionWrapper.getTransaction());
     }
     
     @Override

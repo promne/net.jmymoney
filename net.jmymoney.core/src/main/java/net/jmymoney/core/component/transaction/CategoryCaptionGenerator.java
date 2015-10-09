@@ -2,7 +2,7 @@ package net.jmymoney.core.component.transaction;
 
 import net.jmymoney.core.entity.Category;
 
-class CategoryCaptionGenerator {
+public class CategoryCaptionGenerator {
 
     public static String getCaption(Category category) {
         StringBuilder sb = new StringBuilder();
