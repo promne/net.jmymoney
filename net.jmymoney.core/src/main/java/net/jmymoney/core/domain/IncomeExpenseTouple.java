@@ -53,8 +53,12 @@ public class IncomeExpenseTouple {
         return resultSB.toString();
     }
 
+    public BigDecimal getBalance() {
+        return income.add(expense);
+    }
+    
     public String balanceToString() {
-        return income.add(expense).stripTrailingZeros().toPlainString();
+        return getBalance().stripTrailingZeros().toPlainString();
     }
     
 }

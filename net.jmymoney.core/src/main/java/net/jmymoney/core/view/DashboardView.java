@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
-import at.downdrown.vaadinaddons.highchartsapi.HighChart;
 import at.downdrown.vaadinaddons.highchartsapi.exceptions.HighChartsException;
 import at.downdrown.vaadinaddons.highchartsapi.model.Axis.AxisValueType;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration;
@@ -44,6 +43,7 @@ import net.jmymoney.core.i18n.MessagesResourceBundle;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.ReportingService;
 import net.jmymoney.tools.highcharts.BigDecimalData;
+import net.jmymoney.tools.highcharts.HighChartFactoryProxy;
 
 @CDIView(value = DashboardView.NAME)
 public class DashboardView extends VerticalLayout implements View {
@@ -138,7 +138,7 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return renderChart(lineConfiguration);
+            return HighChartFactoryProxy.renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -175,7 +175,7 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return renderChart(lineConfiguration);
+            return HighChartFactoryProxy.renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -204,7 +204,7 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return renderChart(chartConfiguration);
+            return HighChartFactoryProxy.renderChart(chartConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -224,24 +224,10 @@ public class DashboardView extends VerticalLayout implements View {
         }
         
         try {
-            return renderChart(lineConfiguration);
+            return HighChartFactoryProxy.renderChart(lineConfiguration);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
-    }
-    
-    public static HighChart renderChart(ChartConfiguration configuration) throws HighChartsException {
-        //TODO instead of HighChartFactory, because it puts step variable into queotes 
-        
-        HighChart tempChart = new HighChart();
-        String highChartValue = configuration.getHighChartValue();
-        
-        highChartValue = highChartValue.replaceAll("step: 'FALSE'", "step: false");
-        highChartValue = highChartValue.replaceAll("step: 'TRUE'", "step: true");
-        
-        tempChart.setChartoptions(highChartValue);
-        tempChart.setChartConfiguration(configuration);
-        return tempChart;
     }    
     
 }

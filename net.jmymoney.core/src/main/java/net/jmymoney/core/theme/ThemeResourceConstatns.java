@@ -19,5 +19,9 @@ public class ThemeResourceConstatns {
     public static final Resource DELETE = FontAwesome.TIMES;
 
     public static final Resource BANK = FontAwesome.BANK;
+
+    public static final Resource TABLE = FontAwesome.TABLE;
+
+    public static final Resource CHART = FontAwesome.BAR_CHART_O;
     
 }

@@ -3,11 +3,14 @@ package net.jmymoney.core.service;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.temporal.TemporalUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
@@ -27,6 +30,7 @@ import org.slf4j.Logger;
 import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
 import net.jmymoney.core.entity.Account;
+import net.jmymoney.core.entity.Category;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.entity.UserAccount;
@@ -45,7 +49,7 @@ public class ReportingService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, Collection<Account> includeAccounts, TemporalUnit groupByUnit, boolean excludeTransfers) {
+    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, Collection<Account> includeAccounts, boolean excludeTransfers, boolean includeSubCategories, Collection<Category> includeCategories) {
         assert dateFrom.before(dateTo);
 
         List<CategoryReport> result = categoryService.listCategories(userAccount).stream().map(category -> new CategoryReport(category)).collect(Collectors.toList());
@@ -102,11 +106,34 @@ public class ReportingService {
             dateFrameStart = Date.from((dateFrameStart.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
                     .atStartOfDay(ZoneId.systemDefault()).plus(1, groupByUnit).toInstant()));
         }
+        
+        result.stream().filter(e -> e.getCategory()!=null && !includeCategories.contains(e.getCategory())).flatMap(e -> e.getIncomesAndExpenses().stream()).forEach(e -> {e.setExpense(BigDecimal.ZERO); e.setIncome(BigDecimal.ZERO);});
+        if (!includeSubCategories) {
+            result.stream().filter(e -> e.getCategory()!=null && e.getCategory().getParent()==null).forEach(e -> includeSubCategories(e, result));
+        }
+
+        Set<CategoryReport> removeCategoriesFromReport = result.stream().filter(e -> e.getCategory()!=null && !includeCategories.contains(e.getCategory()) && e.getTotal().getBalance().equals(BigDecimal.ZERO)).collect(Collectors.toSet());
+        result.removeAll(removeCategoriesFromReport);
+        
         return result;        
     }
     
+    private void includeSubCategories(CategoryReport categoryReport, List<CategoryReport> reportsAvailable) {
+        reportsAvailable.stream().filter(e -> e.getCategory()!=null && e.getCategory().getParent()==categoryReport.getCategory()).forEach(e -> includeSubCategories(e, reportsAvailable));
+        
+        BinaryOperator<List<IncomeExpenseTouple>> asdsa = (t, u) -> {
+            List<IncomeExpenseTouple> result = new ArrayList<>(t);
+            for (int i=0; i<result.size(); i++) {
+                result.set(i, result.get(i).add(u.get(i)));
+            }
+            return result;
+        };
+        categoryReport.setIncomesAndExpenses(reportsAvailable.stream().filter(e -> e.getCategory()!=null && e.getCategory().getParent()==categoryReport.getCategory()).map(CategoryReport::getIncomesAndExpenses).reduce(categoryReport.getIncomesAndExpenses(), asdsa));        
+    }
+    
+    
     public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, boolean excludeTransfers) {
-        return getCategoryReport(userAccount, dateFrom, dateTo, accountService.list(userAccount), groupByUnit, excludeTransfers);
+        return getCategoryReport(userAccount, dateFrom, dateTo, groupByUnit, accountService.list(userAccount), excludeTransfers, false, categoryService.listCategories(userAccount));
     }
 
 }
