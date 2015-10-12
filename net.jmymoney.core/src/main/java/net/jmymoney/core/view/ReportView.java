@@ -455,7 +455,7 @@ public class ReportView extends VerticalLayout implements View {
             return;
         }
         
-        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate, toDate, temporalUnit, selectedAccountsForReport, true, filterCategoriesType.getValue()==Boolean.FALSE, selectedCategoriesForReport);
+        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate, toDate, temporalUnit, selectedAccountsForReport, true, filterCategoriesType.getValue()==Boolean.TRUE, selectedCategoriesForReport);
         Collections.sort(reports, (c1, c2) -> {
             if (c1.getCategory() == null) {
                 return c2.getCategory() == null ? 0 : 1;

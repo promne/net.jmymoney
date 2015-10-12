@@ -108,7 +108,7 @@ public class ReportingService {
         }
         
         result.stream().filter(e -> e.getCategory()!=null && !includeCategories.contains(e.getCategory())).flatMap(e -> e.getIncomesAndExpenses().stream()).forEach(e -> {e.setExpense(BigDecimal.ZERO); e.setIncome(BigDecimal.ZERO);});
-        if (!includeSubCategories) {
+        if (includeSubCategories) {
             result.stream().filter(e -> e.getCategory()!=null && e.getCategory().getParent()==null).forEach(e -> includeSubCategories(e, result));
         }
 
