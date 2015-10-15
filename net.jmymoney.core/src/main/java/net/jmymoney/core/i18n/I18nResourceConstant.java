@@ -41,6 +41,7 @@ public enum I18nResourceConstant {
     TRANSACTIONS_ACTION_SAVE("transactions.action.save"),
     TRANSACTIONS_ACTION_CANCEL("transactions.action.cancel"),
     TRANSACTIONS_ACTION_DELETE("transactions.action.delete"),
+    TRANSACTIONS_ACTION_COPY("transactions.action.copy"),
 //    TRANSACTIONS_("transactions."),
     
     

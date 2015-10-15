@@ -31,21 +31,23 @@ public class RecommendationService {
     public Optional<Category> getCategoryForPartner(Account account, SplitPartner splitPartner, Date date) {
         List<Transaction> list = transactionService.list(account);
 
-        Date dateRangeStart = new Date(date.toInstant().minusSeconds(3600*24*35).toEpochMilli());
-        
-        Map<Category, Long> collect = list.stream()
-            .filter(t -> t.getTimestamp().before(date) && t.getTimestamp().after(dateRangeStart))
-            .map(t -> t.getSplits())
-            .flatMap(ts -> ts.stream())
-            .filter(ts -> splitPartner.getId() == (ts.getSplitPartner()==null ? null : ts.getSplitPartner().getId()))
-            .map(ts -> ts.getCategory())
-            .filter(c -> c!=null)
-            .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        for (int i=1; i<3; i++) {
+            Date dateRangeStart = new Date(date.toInstant().minusSeconds(3600*24*35*i).toEpochMilli());
+            Map<Category, Long> collect = list.stream()
+                    .filter(t -> t.getTimestamp().before(date) && t.getTimestamp().after(dateRangeStart))
+                    .map(t -> t.getSplits())
+                    .flatMap(ts -> ts.stream())
+                    .filter(ts -> splitPartner.getId() == (ts.getSplitPartner()==null ? null : ts.getSplitPartner().getId()))
+                    .map(ts -> ts.getCategory())
+                    .filter(c -> c!=null)
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
             
-        if (!collect.isEmpty()) {
-            TreeMap<Long, Category> treeMap = new TreeMap<>(MapUtils.invertMap(collect));
-            return Optional.of(treeMap.lastEntry().getValue());
+            if (!collect.isEmpty()) {
+                TreeMap<Long, Category> treeMap = new TreeMap<>(MapUtils.invertMap(collect));
+                return Optional.of(treeMap.lastEntry().getValue());
+            }
         }
+            
         return Optional.empty();
     }
     

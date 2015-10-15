@@ -33,6 +33,7 @@ public class Category {
 	@ManyToOne
 	@JoinColumn(name="parent_id")
 	private Category parent;
+	public static final String PROPERTY_PARENT = "parent";
 	
 	@ManyToOne
 	@NotNull

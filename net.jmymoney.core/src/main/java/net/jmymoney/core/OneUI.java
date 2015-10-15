@@ -1,6 +1,7 @@
 package net.jmymoney.core;
 
 import com.vaadin.annotations.Theme;
+import com.vaadin.annotations.Widgetset;
 import com.vaadin.cdi.CDIUI;
 import com.vaadin.cdi.CDIViewProvider;
 import com.vaadin.navigator.Navigator;
@@ -48,6 +49,7 @@ import net.jmymoney.core.view.UserAccountView;
 @CDIUI
 @Theme(value = "jmm")
 // @PreserveOnRefresh
+@Widgetset("net.jmymoney.core.MyAppWidgetset")
 public class OneUI extends UI {
 
     @Inject

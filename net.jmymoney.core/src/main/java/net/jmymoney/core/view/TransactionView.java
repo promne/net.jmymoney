@@ -13,6 +13,7 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
 import java.math.BigDecimal;
@@ -21,11 +22,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import org.vaadin.peter.contextmenu.ContextMenu;
+import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuItem;
+import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedListener;
+import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedOnTableFooterEvent;
+import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedOnTableHeaderEvent;
+import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedOnTableRowEvent;
+
 import net.jmymoney.core.UserIdentity;
+import net.jmymoney.core.component.tools.TableHelper;
 import net.jmymoney.core.component.transaction.TransactionFieldWrapper;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Payee;
@@ -121,6 +131,58 @@ public class TransactionView extends VerticalLayout implements View {
         transactionTable.setSelectable(true);
         transactionTable.addStyleName(ThemeStyles.TABLE_COLORED);
 
+        
+        
+        ContextMenuOpenedListener.TableListener tableOpenListener = new ContextMenuOpenedListener.TableListener() {
+
+            @Override
+            public void onContextMenuOpenFromRow(ContextMenuOpenedOnTableRowEvent event) {
+                event.getContextMenu().removeAllItems();
+                TransactionWrapper selectedItem =  (TransactionWrapper) event.getItemId();
+                
+                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CREATE), ThemeResourceConstatns.CREATE).addItemClickListener(e -> createTransaction());
+                if (!selectedItem.getTransaction().isChild()) {
+                    event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_COPY), ThemeResourceConstatns.COPY).addItemClickListener(e -> copySelectedTransaction());
+                }
+                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_EDIT), ThemeResourceConstatns.EDIT).addItemClickListener(e -> editSelectedTransaction());
+                ContextMenuItem deleteItem = event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_DELETE), ThemeResourceConstatns.DELETE);
+                deleteItem.addItemClickListener(e -> deleteSelectedTransaction());
+                deleteItem.setSeparatorVisible(true);
+                
+                for (SplitPartner splitPartner : selectedItem.getTransaction().getSplits().stream().map(sp -> sp.getSplitPartner()).collect(Collectors.toSet())) {
+                    if (splitPartner instanceof Payee) {
+                        event.getContextMenu().addItem(String.format("Go to payee \"%s\"", splitPartner.getName())).addItemClickListener(e -> PartnerView.navigateWithPartner((Payee)splitPartner));
+                    }
+                    if (splitPartner instanceof Account) {
+                        event.getContextMenu().addItem(String.format("Go to account \"%s\"", splitPartner.getName())).addItemClickListener(e -> TransactionView.navigate((Account)splitPartner));
+                    }
+                }
+                
+                for (TransactionSplit split : selectedItem.getTransaction().getSplits()) {
+                    if (split.getParent() != null) {
+                        TransactionSplit splitParent = split.getParent();
+                        event.getContextMenu().addItem(String.format("Go to parent transaction of \"%s\"", split.getSplitPartner().getName())).addItemClickListener(e -> TransactionView.navigate(splitParent.getTransaction()));
+                    }
+                }
+            }
+
+            @Override
+            public void onContextMenuOpenFromHeader(ContextMenuOpenedOnTableHeaderEvent event) {
+                // read clicked header property from event and modify menu
+            }
+
+            @Override
+            public void onContextMenuOpenFromFooter(ContextMenuOpenedOnTableFooterEvent event) {
+                // read clicked footer property from event and modify menu
+            }
+        };
+
+        ContextMenu contextMenu = new ContextMenu();
+        contextMenu.setAsContextMenuOf(transactionTable);
+
+        contextMenu.addContextMenuTableListener(tableOpenListener);        
+        
+        
         transactionTable.addGeneratedColumn(COLUMN_DATE, (source, itemId, columnId) -> {
             return DateFormat.getDateInstance(DateFormat.MEDIUM, messagesResourceBundle.getLocale()).format(((TransactionWrapper) itemId).getTransaction().getTimestamp());
         } );
@@ -196,17 +258,6 @@ public class TransactionView extends VerticalLayout implements View {
             return null;
         } );
 
-        transactionTable.addItemClickListener(event -> {
-            if (event.isDoubleClick() && COLUMN_DETAIL==event.getPropertyId()) {
-                Transaction transaction = ((TransactionWrapper)event.getItemId()).getTransaction();
-                if (transaction.getSplits().size()==1) {
-                        SplitPartner splitPartner = transaction.getSplits().get(0).getSplitPartner();
-                        if (splitPartner instanceof Payee) {
-                            PartnerView.navigateWithPartner((Payee)splitPartner);
-                        }
-                }
-            }
-        });
         
         addComponent(transactionTable);
 
@@ -214,15 +265,15 @@ public class TransactionView extends VerticalLayout implements View {
         transactionActionLayout.setSpacing(true);
 
         createButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CREATE), ThemeResourceConstatns.CREATE);
-        createButton.addClickListener(event -> createButtonClick());
+        createButton.addClickListener(event -> createTransaction());
         transactionActionLayout.addComponent(createButton);
 
         editButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_EDIT), ThemeResourceConstatns.EDIT);
-        editButton.addClickListener(event -> editButtonClick());
+        editButton.addClickListener(event -> editSelectedTransaction());
         transactionActionLayout.addComponent(editButton);
 
         saveButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_SAVE), ThemeResourceConstatns.SAVE);
-        saveButton.addClickListener(event -> saveButtonClick());
+        saveButton.addClickListener(event -> saveTransaction());
         transactionActionLayout.addComponent(saveButton);
 
         cancelButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CANCEL), ThemeResourceConstatns.CANCEL);
@@ -230,7 +281,7 @@ public class TransactionView extends VerticalLayout implements View {
         transactionActionLayout.addComponent(cancelButton);
 
         deleteButton = new Button(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_DELETE), ThemeResourceConstatns.DELETE);
-        deleteButton.addClickListener(event -> deleteButtonClick());
+        deleteButton.addClickListener(event -> deleteSelectedTransaction());
         transactionActionLayout.addComponent(deleteButton);
 
         addComponent(transactionActionLayout);
@@ -257,7 +308,7 @@ public class TransactionView extends VerticalLayout implements View {
         deleteButton.setEnabled(editableTransactionSelected);
     }
 
-    private void createButtonClick() {
+    private void createTransaction() {
         Transaction newTransaction = new Transaction();
         newTransaction.setAccount((Account) accountComboBox.getValue());
         
@@ -271,6 +322,7 @@ public class TransactionView extends VerticalLayout implements View {
         newTransaction.getSplits().add(new TransactionSplit());
         loadTransaction(newTransaction);
         transactionField.setEnabled(true);
+        transactionField.focus();
 
         createButton.setEnabled(false);
         editButton.setEnabled(false);
@@ -279,7 +331,19 @@ public class TransactionView extends VerticalLayout implements View {
         deleteButton.setEnabled(false);
     }
 
-    private void deleteButtonClick() {
+    private void copySelectedTransaction() {
+        Transaction transactionCopy = new Transaction();
+        Transaction.copyTransactionValues(getSelectedTransaction().get(), transactionCopy);
+        transactionCopy.setId(null);
+        transactionCopy.getSplits().stream().forEach(e -> e.setId(null));
+        transactionCopy.setTimestamp(Page.getCurrent().getWebBrowser().getCurrentDate());
+        
+        transactionService.create(transactionCopy);
+        refreshTransactions();
+        selectTransaction(transactionCopy);
+    }
+    
+    private void deleteSelectedTransaction() {
         transactionService.delete(((TransactionWrapper) transactionTable.getValue()).getTransaction().getId());
         refreshTransactions();
 
@@ -290,8 +354,9 @@ public class TransactionView extends VerticalLayout implements View {
         deleteButton.setEnabled(false);
     }
 
-    private void editButtonClick() {
+    private void editSelectedTransaction() {
         transactionField.setEnabled(true);
+        transactionField.focus();
 
         createButton.setEnabled(true);
         editButton.setEnabled(false);
@@ -300,7 +365,7 @@ public class TransactionView extends VerticalLayout implements View {
         deleteButton.setEnabled(true);
     }
 
-    private void saveButtonClick() {
+    private void saveTransaction() {
         transactionField.commit();
         Transaction value = transactionField.getValue();
         if (value.getId() != null) {
@@ -308,8 +373,8 @@ public class TransactionView extends VerticalLayout implements View {
         } else {
             transactionService.create(value);
         }
-        selectTransaction(value);
         refreshTransactions();
+        selectTransaction(value);
 
         transactionField.setEnabled(false);
 
@@ -354,20 +419,24 @@ public class TransactionView extends VerticalLayout implements View {
 
         if (selectedItemId != null) {
             selectTransaction(selectedItemId.getTransaction());
-            transactionTable.setCurrentPageFirstItemId(transactionTable.getValue());
         }        
     }
 
     private void selectTransaction(Transaction transaction) {
-        Transaction foundItem = null;
+        selectTransaction(transaction.getId());
+    }
+    
+    private void selectTransaction(Long transactionId) {
+        TransactionWrapper foundItem = null;
         for (TransactionWrapper item : transactionContainer.getItemIds()) {
-            if (item.getTransaction().getId().equals(transaction.getId())) {
+            if (item.getTransaction().getId().equals(transactionId)) {
                 transactionTable.select(item);
-                foundItem = item.getTransaction();
+                foundItem = item;
                 break;
             }
         }
-        loadTransaction(foundItem);
+        TableHelper.putItemInViewport(foundItem, transactionTable);
+        loadTransaction(foundItem.getTransaction());
     }
 
     private void loadTransactions(Account account) {
@@ -423,9 +492,36 @@ public class TransactionView extends VerticalLayout implements View {
     
     @Override
     public void enter(ViewChangeEvent event) {
-        // nothing to do
-        refreshAccounts();
+        if (event.getParameters() != null && !event.getParameters().isEmpty()) {
+            String[] navigationParam = event.getParameters().split("-");
+            try {
+                Long accountId = Long.parseLong(navigationParam[0]);
+                for (Account account : accountContainer.getItemIds()) {
+                    if (account.getId().equals(accountId)) {
+                        accountComboBox.select(account);
+                        break;
+                    }
+                }
+                if (navigationParam.length>1) {
+                    Long transactionId = Long.parseLong(navigationParam[1]);
+                    selectTransaction(transactionId);
+                }
+            } catch (NumberFormatException e) {
+                refreshAccounts();
+            }
+        } else {
+            refreshAccounts();
+        }
+        
         cancelButtonClick();
     }
 
+    public static void navigate(Account account) {
+        UI.getCurrent().getNavigator().navigateTo(NAME + "/" + account.getId());
+    }
+
+    public static void navigate(Transaction transaction) {
+        UI.getCurrent().getNavigator().navigateTo(NAME + "/" + transaction.getAccount().getId() + "-" + transaction.getId());
+    }
+    
 }

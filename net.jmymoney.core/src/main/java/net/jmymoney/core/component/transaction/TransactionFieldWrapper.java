@@ -7,13 +7,9 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.CssLayout;
 import com.vaadin.ui.CustomField;
 
-import java.util.Date;
-import java.util.stream.Collectors;
-
 import javax.inject.Inject;
 
 import net.jmymoney.core.entity.Transaction;
-import net.jmymoney.core.entity.TransactionSplit;
 
 public class TransactionFieldWrapper extends CustomField<Transaction> {
 
@@ -41,7 +37,7 @@ public class TransactionFieldWrapper extends CustomField<Transaction> {
     public void commit() throws SourceException, InvalidValueException {
         super.commit();
         getCurrent().commit();
-        copyTransactionValues(getCurrent().getValue(), getInternalValue());
+        Transaction.copyTransactionValues(getCurrent().getValue(), getInternalValue());
     }
 
     @Override
@@ -50,26 +46,6 @@ public class TransactionFieldWrapper extends CustomField<Transaction> {
         setCurrentRight();
     }
 
-    private TransactionSplit copySplit(TransactionSplit split, Transaction transaction) {
-        TransactionSplit splitCopy = new TransactionSplit();
-        splitCopy.setAmount(split.getAmount());
-        splitCopy.setCategory(split.getCategory());
-        splitCopy.setChildren(split.getChildren());
-        splitCopy.setId(split.getId());
-        splitCopy.setNote(split.getNote());
-        splitCopy.setSplitPartner(split.getSplitPartner());
-        splitCopy.setParent(split.getParent());
-        splitCopy.setTransaction(transaction);
-        return splitCopy;
-    }
-    
-    private void copyTransactionValues(Transaction fromTransaction, Transaction toTransaction) {
-        toTransaction.setId(fromTransaction.getId());
-        toTransaction.setTimestamp(fromTransaction.getTimestamp() == null ? null : (Date) fromTransaction.getTimestamp().clone());
-        toTransaction.setSplits(fromTransaction.getSplits().stream().sequential().map(s -> copySplit(s, toTransaction)).collect(Collectors.toList()));
-        toTransaction.setAccount(fromTransaction.getAccount());        
-    }
-    
     @Override
     public void setValue(Transaction newFieldValue) throws ReadOnlyException, ConversionException {
         super.setValue(newFieldValue);
@@ -81,7 +57,7 @@ public class TransactionFieldWrapper extends CustomField<Transaction> {
         boolean visibleComplex = false;
         if (getInternalValue() != null) {
             transactionCopy = new Transaction();
-            copyTransactionValues(getInternalValue(), transactionCopy);            
+            Transaction.copyTransactionValues(getInternalValue(), transactionCopy);            
             visibleComplex = transactionCopy.getSplits().size()>1; 
         }
         complexField.setVisible(visibleComplex);

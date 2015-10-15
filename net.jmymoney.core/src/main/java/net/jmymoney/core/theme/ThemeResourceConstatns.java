@@ -23,5 +23,7 @@ public class ThemeResourceConstatns {
     public static final Resource TABLE = FontAwesome.TABLE;
 
     public static final Resource CHART = FontAwesome.BAR_CHART_O;
+
+    public static final Resource COPY = FontAwesome.COPY;
     
 }

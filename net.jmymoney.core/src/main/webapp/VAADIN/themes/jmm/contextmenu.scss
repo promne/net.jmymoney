@@ -1,0 +1,34 @@
+@mixin contextmenu {
+  .v-context-menu-container {
+    @include valo-selection-overlay-style;
+  
+    .v-context-submenu {
+      width: auto !important;
+      @include valo-selection-item-style;
+      padding-left: $v-selection-item-height + round($v-selection-item-padding-horizontal/2);
+      padding-right: $v-unit-size;
+      position: relative;
+      outline: none;
+    
+      &:hover {
+        @include valo-selection-item-selected-style;
+      }
+    }
+  
+    .v-context-menu-item-basic-icon-container,
+    .v-context-menu-item-basic-text {
+  	  display: inline-block;
+    }
+  
+    .v-context-menu-item-basic-submenu:after {
+      position: absolute;
+      right: $v-selection-item-padding-horizontal;
+      top: 0;
+      @include valo-menubar-submenu-indicator-style;
+    }
+  
+    .v-context-menu-item-basic-open {
+        @include valo-selection-item-selected-style;
+    }
+  }
+}

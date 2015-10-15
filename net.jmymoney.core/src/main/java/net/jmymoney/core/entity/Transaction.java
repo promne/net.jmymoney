@@ -3,7 +3,9 @@ package net.jmymoney.core.entity;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -89,4 +91,27 @@ public class Transaction {
     public boolean isChild() {
         return splits.stream().anyMatch(split -> split.getParent() != null);
     }
+    
+    public static void copyTransactionValues(Transaction fromTransaction, Transaction toTransaction) {
+        toTransaction.setId(fromTransaction.getId());
+        toTransaction.setTimestamp(fromTransaction.getTimestamp() == null ? null : (Date) fromTransaction.getTimestamp().clone());
+        toTransaction.setSplits(fromTransaction.getSplits().stream().sequential().map(s -> copySplit(s, toTransaction)).collect(Collectors.toList()));
+        toTransaction.setAccount(fromTransaction.getAccount());        
+    }
+    
+    public static TransactionSplit copySplit(TransactionSplit split, Transaction transaction) {
+        TransactionSplit splitCopy = new TransactionSplit();
+        splitCopy.setAmount(split.getAmount());
+        splitCopy.setCategory(split.getCategory());
+        if (split.getChildren()!=null) {
+            splitCopy.setChildren(new HashSet<>(split.getChildren()));
+        }
+        splitCopy.setId(split.getId());
+        splitCopy.setNote(split.getNote());
+        splitCopy.setSplitPartner(split.getSplitPartner());
+        splitCopy.setParent(split.getParent());
+        splitCopy.setTransaction(transaction);
+        return splitCopy;
+    }
+    
 }
