@@ -162,18 +162,24 @@ public class TransactionView extends VerticalLayout implements View {
                     if (split.getParent() != null) {
                         TransactionSplit splitParent = split.getParent();
                         event.getContextMenu().addItem(String.format("Go to parent transaction of \"%s\"", split.getSplitPartner().getName())).addItemClickListener(e -> TransactionView.navigate(splitParent.getTransaction()));
+                    } else if (split.getChildren()!=null) {
+                        for (TransactionSplit childSplit : split.getChildren()) {
+                            event.getContextMenu().addItem(String.format("Go to child transaction of \"%s\"", split.getSplitPartner().getName())).addItemClickListener(e -> TransactionView.navigate(childSplit.getTransaction()));                            
+                        }
                     }
                 }
+                selectedItem.getTransaction().getSplits().stream().filter(s -> s.getCategory() != null).map(s -> s.getCategory())
+                        .forEach(c -> event.getContextMenu().addItem(String.format("Go to category \"%s\"", c.getName())).addItemClickListener(e -> CategoryView.navigate(c)));
             }
 
             @Override
             public void onContextMenuOpenFromHeader(ContextMenuOpenedOnTableHeaderEvent event) {
-                // read clicked header property from event and modify menu
+                event.getContextMenu().removeAllItems();
             }
 
             @Override
             public void onContextMenuOpenFromFooter(ContextMenuOpenedOnTableFooterEvent event) {
-                // read clicked footer property from event and modify menu
+                event.getContextMenu().removeAllItems();
             }
         };
 
