@@ -13,6 +13,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
 import net.jmymoney.core.entity.Account;
+import net.jmymoney.core.entity.Category;
 import net.jmymoney.core.entity.SplitPartner;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
@@ -34,6 +35,22 @@ public class TransactionService {
     }
 
     public Transaction update(Transaction transaction) {
+        return transaction.isChild() ? updateChild(transaction) : updateParent(transaction); 
+    }
+
+    public Transaction updateChild(Transaction transaction) {
+        for (TransactionSplit transactionSplit : transaction.getSplits()) {
+            TransactionSplit parent = transactionSplit.getParent();
+            if (parent != null) {
+                parent.setAmount(transactionSplit.getAmount());
+                entityManager.merge(parent);
+            }
+            entityManager.merge(transactionSplit);
+        }
+        return entityManager.merge(transaction);
+    }
+    
+    public Transaction updateParent(Transaction transaction) {
         Transaction originalTransaction = entityManager.find(Transaction.class, transaction.getId());
 
         // unused - remove childs + remove by default
@@ -143,6 +160,15 @@ public class TransactionService {
         tr.fetch(TransactionSplit.PROPERTY_TRANSACTION);
         cq.where(cb.equal(tr.get(TransactionSplit.PROPERTY_SPLIT_PARTNER), splitPartner));
         
+        return entityManager.createQuery(cq).getResultList();        
+    }
+
+    public List<TransactionSplit> listTransactionSplit(Category category) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<TransactionSplit> cq = cb.createQuery(TransactionSplit.class);
+        Root<TransactionSplit> tr = cq.from(TransactionSplit.class);
+        tr.fetch(TransactionSplit.PROPERTY_TRANSACTION);
+        cq.where(cb.equal(tr.get(TransactionSplit.PROPERTY_CATEGORY), category));        
         return entityManager.createQuery(cq).getResultList();        
     }
 }

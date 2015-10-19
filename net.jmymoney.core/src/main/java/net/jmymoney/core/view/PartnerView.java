@@ -26,6 +26,7 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.VerticalSplitPanel;
 import com.vaadin.ui.renderers.ButtonRenderer;
 
 import java.util.Collection;
@@ -37,7 +38,8 @@ import javax.inject.Inject;
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.component.DialogResultType;
 import net.jmymoney.core.component.StringInputDialog;
-import net.jmymoney.core.component.transaction.CategoryCaptionGenerator;
+import net.jmymoney.core.component.TransactionSplitGrid;
+import net.jmymoney.core.data.TransactionSplitContainer;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Payee;
 import net.jmymoney.core.entity.Transaction;
@@ -65,10 +67,8 @@ public class PartnerView extends VerticalLayout implements View {
     private GeneratedPropertyContainer gpc = new GeneratedPropertyContainer(partnerContainer);
     private static final String PROPERTY_DELETE = "action_delete";
 
-    private Grid partnerTransactionGrid;
-    private BeanContainer<Long, TransactionSplit> partnerTransactionContainer = new BeanContainer<>(TransactionSplit.class);
-    private GeneratedPropertyContainer gPartnerTransactionContainer = new GeneratedPropertyContainer(partnerTransactionContainer);
-    private static final String PROPERTY_CATEGORY_LABEL = "category_label";
+    private TransactionSplitContainer partnerTransactionContainer = new TransactionSplitContainer();
+    private TransactionSplitGrid partnerTransactionGrid = new TransactionSplitGrid(partnerTransactionContainer);
     
     
     @PostConstruct
@@ -103,6 +103,7 @@ public class PartnerView extends VerticalLayout implements View {
             .setHeaderCaption("Delete")
             .setRenderer((new ButtonRenderer(e -> this.deleteItem(e.getItemId()))))
             .setEditable(false);
+        partnerGrid.sort(Payee.PROPERTY_NAME);
         
         //filtering
         HeaderRow filterRow = partnerGrid.appendHeaderRow();        
@@ -140,67 +141,36 @@ public class PartnerView extends VerticalLayout implements View {
             }
         });
         
-        partnerTransactionContainer.setBeanIdProperty(TransactionSplit.PROPERTY_ID);
-        partnerTransactionContainer.addNestedContainerBean(TransactionSplit.PROPERTY_TRANSACTION);
-        partnerTransactionContainer.addNestedContainerBean(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_ACCOUNT));
-
-        gPartnerTransactionContainer.addGeneratedProperty(PROPERTY_CATEGORY_LABEL, new PropertyValueGenerator<String>() {
-            @Override
-            public String getValue(Item item, Object itemId, Object propertyId) {
-                String result = null;
-                TransactionSplit transactionSplit = ((BeanItem<TransactionSplit>)item).getBean();
-                if (transactionSplit.getCategory() != null) {
-                    result = CategoryCaptionGenerator.getCaption(transactionSplit.getCategory());
-                }
-                return result;
-            }
-
-            @Override
-            public Class<String> getType() {
-                return String.class;
-            }
-        });
-        
-        partnerTransactionGrid = new Grid(gPartnerTransactionContainer);
-        partnerTransactionGrid.setWidth(100f, Unit.PERCENTAGE);
-        partnerTransactionGrid.setVisible(false);
-
-        partnerTransactionGrid.removeAllColumns();
-        partnerTransactionGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP));
-        partnerTransactionGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_ACCOUNT, Account.PROPERTY_NAME));
-        partnerTransactionGrid.addColumn(PROPERTY_CATEGORY_LABEL);
-        partnerTransactionGrid.addColumn(TransactionSplit.PROPERTY_AMOUNT);
-        partnerTransactionGrid.addColumn(TransactionSplit.PROPERTY_NOTE);
-        
-        
-        
         VerticalLayout contentLayout = new VerticalLayout();
         contentLayout.setSizeFull();
         contentLayout.setSpacing(true);
         contentLayout.addComponent(partnerGrid);
-        contentLayout.addComponent(partnerTransactionGrid);
-        contentLayout.setExpandRatio(partnerGrid, 0.5f);
+        contentLayout.addComponent(new Button("New", (ClickListener) event -> newPartnerAction()));
+        contentLayout.setExpandRatio(partnerGrid, 1.0f);
         
-        addComponent(contentLayout);
-        setExpandRatio(contentLayout, 1.0f);
+        partnerTransactionGrid.setSizeFull();
+        partnerTransactionGrid.removeAllColumns();
+        partnerTransactionGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP));
+        partnerTransactionGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_ACCOUNT, Account.PROPERTY_NAME));
+        partnerTransactionGrid.addColumn(TransactionSplitGrid.PROPERTY_CATEGORY_LABEL);
+        partnerTransactionGrid.addColumn(TransactionSplit.PROPERTY_AMOUNT);
+        partnerTransactionGrid.addColumn(TransactionSplit.PROPERTY_NOTE);
+        partnerTransactionGrid.sort(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP), SortDirection.DESCENDING);
         
-        addComponent(new Button("New", (ClickListener) event -> newPartnerAction()));
+        VerticalSplitPanel splitPanel = new VerticalSplitPanel(contentLayout, partnerTransactionGrid);
+        splitPanel.setSplitPosition(75, Unit.PERCENTAGE);
+        addComponent(splitPanel);
     }
     
     private void refreshPartnerTransactions() {
         Collection<Object> selectedRows = partnerGrid.getSelectedRows();
+        partnerTransactionContainer.removeAllItems();
         if (!selectedRows.isEmpty()) {
-            partnerTransactionContainer.removeAllItems();
             for (Object itemId : selectedRows) {
                 BeanItem<Payee> item = partnerContainer.getItem(itemId);
                 List<TransactionSplit> transactionSplits = transactionService.listTransactionSplit(item.getBean());
                 partnerTransactionContainer.addAll(transactionSplits);
             }
-            partnerTransactionGrid.markAsDirty();
-            partnerTransactionGrid.sort(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP), SortDirection.DESCENDING);
-            partnerTransactionGrid.setVisible(true);
-        } else {
-            partnerTransactionGrid.setVisible(false);
         }
     }
     
@@ -250,9 +220,7 @@ public class PartnerView extends VerticalLayout implements View {
     private void refreshPartners() {
         partnerContainer.removeAllItems();
         partnerContainer.addAll(splitPartnerService.listPayees(userIdentity.getUserAccount()));
-        partnerGrid.sort(Payee.PROPERTY_NAME);
     }
-    
 
     public static void navigateWithPartner(Payee payee) {
         UI.getCurrent().getNavigator().navigateTo(NAME + "/" + payee.getId());

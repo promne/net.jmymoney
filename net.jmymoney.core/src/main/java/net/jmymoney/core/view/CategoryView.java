@@ -10,6 +10,7 @@ import com.vaadin.event.dd.acceptcriteria.AcceptCriterion;
 import com.vaadin.event.dd.acceptcriteria.SourceIsTarget;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.shared.data.sort.SortDirection;
 import com.vaadin.shared.ui.dd.VerticalDropLocation;
 import com.vaadin.ui.AbstractSelect.AbstractSelectTargetDetails;
 import com.vaadin.ui.Button;
@@ -21,6 +22,7 @@ import com.vaadin.ui.Table.TableDragMode;
 import com.vaadin.ui.TreeTable;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.VerticalSplitPanel;
 
 import java.util.Arrays;
 import java.util.List;
@@ -31,8 +33,16 @@ import javax.inject.Inject;
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.component.DialogResultType;
 import net.jmymoney.core.component.StringInputDialog;
+import net.jmymoney.core.component.TransactionSplitGrid;
+import net.jmymoney.core.data.TransactionSplitContainer;
+import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Category;
+import net.jmymoney.core.entity.SplitPartner;
+import net.jmymoney.core.entity.Transaction;
+import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.service.CategoryService;
+import net.jmymoney.core.service.TransactionService;
+import net.jmymoney.core.util.PropertyResolver;
 
 @CDIView(value = CategoryView.NAME)
 public class CategoryView extends VerticalLayout implements View {
@@ -47,12 +57,18 @@ public class CategoryView extends VerticalLayout implements View {
 
     @Inject
     private CategoryService categoryService;
+    
+    @Inject
+    private TransactionService transactionService;
 
     private TreeTable categoryTree;
 
     private Button deleteButton;
 
     private Button editButton;
+    
+    private TransactionSplitContainer transactionSplitContainer = new TransactionSplitContainer();
+    private TransactionSplitGrid transactionSplitGrid = new TransactionSplitGrid(transactionSplitContainer);
 
     @PostConstruct
     private void init() {
@@ -110,19 +126,38 @@ public class CategoryView extends VerticalLayout implements View {
         });
         categoryTree.addValueChangeListener(event -> categoryChangedAction());
 
-        addComponent(categoryTree);
-
+        
         HorizontalLayout controlButtonsLayout = new HorizontalLayout();
+        controlButtonsLayout.setSpacing(true);
         controlButtonsLayout.addComponent(new Button("New", (ClickListener) event -> newCategoryAction()));
         editButton = new Button("Edit", (ClickListener) event -> editCategoryAction());
         controlButtonsLayout.addComponent(editButton);
-
+        
         deleteButton = new Button("Delete", (ClickListener) event -> deleteCategoryAction());
         controlButtonsLayout.addComponent(deleteButton);
+        
+        VerticalLayout contentLayout = new VerticalLayout();
+        contentLayout.setSizeFull();
+        contentLayout.setSpacing(true);
+        contentLayout.addComponent(categoryTree);
+        contentLayout.addComponent(controlButtonsLayout);
+        contentLayout.setExpandRatio(categoryTree, 1.0f);
+        addComponent(contentLayout);
 
-        addComponent(controlButtonsLayout);
 
-        setExpandRatio(categoryTree, 1.0f);
+        transactionSplitGrid.setSizeFull();
+        transactionSplitGrid.removeAllColumns();
+        transactionSplitGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP));
+        transactionSplitGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_ACCOUNT, Account.PROPERTY_NAME));
+        transactionSplitGrid.addColumn(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_SPLIT_PARTNER, SplitPartner.PROPERTY_NAME));
+        transactionSplitGrid.addColumn(TransactionSplit.PROPERTY_AMOUNT);
+        transactionSplitGrid.addColumn(TransactionSplit.PROPERTY_NOTE);
+        transactionSplitGrid.sort(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP), SortDirection.DESCENDING);
+                
+        
+        VerticalSplitPanel splitPanel = new VerticalSplitPanel(contentLayout, transactionSplitGrid);
+        splitPanel.setSplitPosition(75, Unit.PERCENTAGE);
+        addComponent(splitPanel);
     }
 
     private void deleteCategoryAction() {
@@ -141,6 +176,7 @@ public class CategoryView extends VerticalLayout implements View {
         Object selectedId = categoryTree.getValue();
         deleteButton.setEnabled(selectedId != null);
         editButton.setEnabled(selectedId != null);
+        refreshCategoryTransactions();
     }
 
     private void editCategoryAction() {
@@ -194,6 +230,15 @@ public class CategoryView extends VerticalLayout implements View {
         }
     }
 
+    private void refreshCategoryTransactions() {
+        Object selectedId = categoryTree.getValue();
+        transactionSplitContainer.removeAllItems();
+        if (selectedId!=null) {
+            Category c = (Category) categoryTree.getItem(selectedId).getItemProperty(COLUMN_VALUE).getValue();
+            transactionSplitContainer.addAll(transactionService.listTransactionSplit(c));
+        }
+    }
+    
     private void refreshCategories() {
         categoryTree.removeAllItems();
         List<Category> listCategories = categoryService.listCategories(userIdentity.getUserAccount());
