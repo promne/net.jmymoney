@@ -168,7 +168,7 @@ public class TransactionService {
         CriteriaQuery<TransactionSplit> cq = cb.createQuery(TransactionSplit.class);
         Root<TransactionSplit> tr = cq.from(TransactionSplit.class);
         tr.fetch(TransactionSplit.PROPERTY_TRANSACTION);
-        cq.where(cb.equal(tr.get(TransactionSplit.PROPERTY_CATEGORY), category));        
+        cq.where(cb.and(cb.equal(tr.get(TransactionSplit.PROPERTY_CATEGORY), category), cb.isNull(tr.get(TransactionSplit.PROPERTY_PARENT))));        
         return entityManager.createQuery(cq).getResultList();        
     }
 }
