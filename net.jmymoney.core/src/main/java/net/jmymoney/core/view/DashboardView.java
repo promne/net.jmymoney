@@ -28,13 +28,10 @@ import javax.inject.Inject;
 
 import at.downdrown.vaadinaddons.highchartsapi.exceptions.HighChartsException;
 import at.downdrown.vaadinaddons.highchartsapi.model.Axis.AxisValueType;
-import at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartType;
 import at.downdrown.vaadinaddons.highchartsapi.model.data.HighChartsData;
 import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.HighChartsPlotOptionsImpl.Steps;
-import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.LineChartPlotOptions;
 import at.downdrown.vaadinaddons.highchartsapi.model.series.BarChartSeries;
-import at.downdrown.vaadinaddons.highchartsapi.model.series.LineChartSeries;
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.domain.AccountMetadata;
 import net.jmymoney.core.domain.CategoryReport;
@@ -43,7 +40,11 @@ import net.jmymoney.core.i18n.MessagesResourceBundle;
 import net.jmymoney.core.service.AccountService;
 import net.jmymoney.core.service.ReportingService;
 import net.jmymoney.tools.highcharts.BigDecimalData;
+import net.jmymoney.tools.highcharts.ChartConfiguration;
+import net.jmymoney.tools.highcharts.ChartConfiguration.PlotLine;
 import net.jmymoney.tools.highcharts.HighChartFactoryProxy;
+import net.jmymoney.tools.highcharts.SPLineChartPlotOptions;
+import net.jmymoney.tools.highcharts.SPLineChartSeries;
 
 @CDIView(value = DashboardView.NAME)
 public class DashboardView extends VerticalLayout implements View {
@@ -111,10 +112,11 @@ public class DashboardView extends VerticalLayout implements View {
               
         ChartConfiguration lineConfiguration = new ChartConfiguration();
         lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_ACCOUNT_BALANCE_HISTORY, REPORT_NUMBER_OF_DAYS));
-        lineConfiguration.setChartType(ChartType.LINE);
+        lineConfiguration.setChartType(ChartType.SPLINE);
+        lineConfiguration.getyAxisPlotLines().add(new PlotLine().setColor("red").setValue(0f).setWidth(1));
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
 
-        LineChartPlotOptions lineChartPlotOptions = new LineChartPlotOptions();
+        SPLineChartPlotOptions lineChartPlotOptions = new SPLineChartPlotOptions();
         lineConfiguration.setPlotOptions(lineChartPlotOptions);
         lineChartPlotOptions.setDataLabelsEnabled(false);
         
@@ -127,7 +129,7 @@ public class DashboardView extends VerticalLayout implements View {
                 List<HighChartsData> seriesData = accountSeries.get(accountMetadata.getAccount().getId());
                 if (seriesData == null) {
                     seriesData = new ArrayList<>();
-                    LineChartSeries series = new LineChartSeries(accountMetadata.getAccount().getName(), seriesData);
+                    SPLineChartSeries series = new SPLineChartSeries(accountMetadata.getAccount().getName(), seriesData);
                     lineConfiguration.getSeriesList().add(series);
                     accountSeries.put(accountMetadata.getAccount().getId(), seriesData);
                 }
@@ -147,10 +149,10 @@ public class DashboardView extends VerticalLayout implements View {
     private Component getNetWorthHistoryChart() {
         ChartConfiguration lineConfiguration = new ChartConfiguration();
         lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_NET_WORTH, REPORT_NUMBER_OF_DAYS));
-        lineConfiguration.setChartType(ChartType.LINE);
+        lineConfiguration.setChartType(ChartType.SPLINE);
         lineConfiguration.setLegendEnabled(false);
         
-        LineChartPlotOptions lineChartPlotOptions = new LineChartPlotOptions();
+        SPLineChartPlotOptions lineChartPlotOptions = new SPLineChartPlotOptions();
         lineChartPlotOptions.setSteps(Steps.FALSE);
         lineConfiguration.setPlotOptions(lineChartPlotOptions);
         lineChartPlotOptions.setDataLabelsEnabled(false);
@@ -160,7 +162,7 @@ public class DashboardView extends VerticalLayout implements View {
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
         Instant iterationDate = currentDate.minus(REPORT_NUMBER_OF_DAYS-1, ChronoUnit.DAYS);
         List<HighChartsData> seriesData = new ArrayList<>();
-        LineChartSeries series = new LineChartSeries("net worth", seriesData);
+        SPLineChartSeries series = new SPLineChartSeries("net worth", seriesData);
         lineConfiguration.getSeriesList().add(series);
         
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);

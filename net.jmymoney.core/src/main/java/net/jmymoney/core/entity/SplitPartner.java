@@ -41,6 +41,7 @@ public abstract class SplitPartner {
 	@NotNull
 	@JoinColumn(name="user_account_id")
 	UserAccount userAccount;
+	public static final String PROPERTY_USER_ACCOUNT = "userAccount";
 	
 	public SplitPartner() {
 		super();

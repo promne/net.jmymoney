@@ -158,7 +158,7 @@ public class PartnerView extends VerticalLayout implements View {
         partnerTransactionGrid.sort(PropertyResolver.chainPropertyName(TransactionSplit.PROPERTY_TRANSACTION, Transaction.PROPERTY_TIMESTAMP), SortDirection.DESCENDING);
         
         VerticalSplitPanel splitPanel = new VerticalSplitPanel(contentLayout, partnerTransactionGrid);
-        splitPanel.setSplitPosition(75, Unit.PERCENTAGE);
+        splitPanel.setSplitPosition(66, Unit.PERCENTAGE);
         addComponent(splitPanel);
     }
     

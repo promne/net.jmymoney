@@ -1,7 +1,7 @@
 package net.jmymoney.core.view;
 
 import com.vaadin.cdi.CDIView;
-import com.vaadin.data.Item;
+import com.vaadin.data.util.BeanItem;
 import com.vaadin.event.DataBoundTransferable;
 import com.vaadin.event.Transferable;
 import com.vaadin.event.dd.DragAndDropEvent;
@@ -26,6 +26,7 @@ import com.vaadin.ui.VerticalSplitPanel;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -34,6 +35,7 @@ import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.component.DialogResultType;
 import net.jmymoney.core.component.StringInputDialog;
 import net.jmymoney.core.component.TransactionSplitGrid;
+import net.jmymoney.core.data.CategoryContainer;
 import net.jmymoney.core.data.TransactionSplitContainer;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Category;
@@ -49,9 +51,6 @@ public class CategoryView extends VerticalLayout implements View {
 
     public static final String NAME = "CategoryView";
 
-    private static final String COLUMN_NAME = "Name";
-    private static final String COLUMN_VALUE = "CategoryValue";
-
     @Inject
     private UserIdentity userIdentity;
 
@@ -61,7 +60,8 @@ public class CategoryView extends VerticalLayout implements View {
     @Inject
     private TransactionService transactionService;
 
-    private TreeTable categoryTree;
+    private CategoryContainer categoryContainer = new CategoryContainer();
+    private TreeTable categoryTree = new TreeTable(null, categoryContainer);
 
     private Button deleteButton;
 
@@ -76,13 +76,9 @@ public class CategoryView extends VerticalLayout implements View {
         setSpacing(true);
         setMargin(true);
 
-        categoryTree = new TreeTable();
         categoryTree.setSizeFull();
         categoryTree.setSelectable(true);
-        categoryTree.addContainerProperty(COLUMN_NAME, String.class, null);
-        categoryTree.addContainerProperty(COLUMN_VALUE, Category.class, null);
-        categoryTree.setVisibleColumns(COLUMN_NAME);
-
+        categoryTree.setVisibleColumns(Category.PROPERTY_NAME);
         categoryTree.setDragMode(TableDragMode.ROW);
         categoryTree.setDropHandler(new DropHandler() {
 
@@ -100,10 +96,10 @@ public class CategoryView extends VerticalLayout implements View {
                 final Object targetItemId = dropData.getItemIdOver();
 
                 Category candidateParent = null;
-                Category dragCategory = (Category) categoryTree.getItem(sourceItemId).getItemProperty(COLUMN_VALUE).getValue();
+                Category dragCategory = categoryContainer.getItem(sourceItemId).getBean();
 
                 if (targetItemId != null) {
-                    candidateParent = (Category) categoryTree.getItem(targetItemId).getItemProperty(COLUMN_VALUE).getValue();
+                    candidateParent = categoryContainer.getItem(targetItemId).getBean();
                     if (Arrays.asList(VerticalDropLocation.BOTTOM, VerticalDropLocation.TOP).contains(dropData.getDropLocation())) {
                         candidateParent = candidateParent.getParent();
                     }
@@ -156,12 +152,12 @@ public class CategoryView extends VerticalLayout implements View {
                 
         
         VerticalSplitPanel splitPanel = new VerticalSplitPanel(contentLayout, transactionSplitGrid);
-        splitPanel.setSplitPosition(75, Unit.PERCENTAGE);
+        splitPanel.setSplitPosition(66, Unit.PERCENTAGE);
         addComponent(splitPanel);
     }
 
     private void deleteCategoryAction() {
-        Category curCategory = (Category) categoryTree.getItem(categoryTree.getValue()).getItemProperty(COLUMN_VALUE).getValue();
+        Category curCategory = categoryContainer.getItem(categoryTree.getValue()).getBean();
         boolean deleted = categoryService.delete(curCategory.getId());
 
         if (deleted) {
@@ -182,7 +178,7 @@ public class CategoryView extends VerticalLayout implements View {
     private void editCategoryAction() {
         Object itemId = categoryTree.getValue();
         if (itemId != null) {
-            Category curCategory = (Category) categoryTree.getItem(itemId).getItemProperty(COLUMN_VALUE).getValue();
+            Category curCategory = categoryContainer.getItem(itemId).getBean();
             StringInputDialog categoryNameDialog = new StringInputDialog("Edit category", "Enter name of category");
             categoryNameDialog.setValue(curCategory.getName());
             categoryNameDialog.setDialogResultListener((closeType, resultValue) -> {
@@ -217,12 +213,9 @@ public class CategoryView extends VerticalLayout implements View {
         if (event.getParameters() != null && !event.getParameters().isEmpty()) {
             try {
                 Long categoryId = Long.parseLong(event.getParameters().toString());
-                for (Object itemId : categoryTree.getContainerDataSource().getItemIds()) {
-                    Item item = categoryTree.getItem(itemId);
-                    if (((Category)item.getItemProperty(COLUMN_VALUE).getValue()).getId() == categoryId) {
-                        categoryTree.select(itemId);
-                        break;
-                    }
+                Optional<Category> category = categoryContainer.getCategory(categoryId);
+                if (category.isPresent()) {
+                    categoryTree.select(category.get());                    
                 }
             } catch (NumberFormatException e) {
                 //nothing, go on
@@ -231,31 +224,18 @@ public class CategoryView extends VerticalLayout implements View {
     }
 
     private void refreshCategoryTransactions() {
-        Object selectedId = categoryTree.getValue();
+        BeanItem<Category> item = categoryContainer.getItem(categoryTree.getValue());
         transactionSplitContainer.removeAllItems();
-        if (selectedId!=null) {
-            Category c = (Category) categoryTree.getItem(selectedId).getItemProperty(COLUMN_VALUE).getValue();
-            transactionSplitContainer.addAll(transactionService.listTransactionSplit(c));
+        if (item!=null) {
+            transactionSplitContainer.addAll(transactionService.listTransactionSplit(item.getBean()));
         }
     }
     
     private void refreshCategories() {
-        categoryTree.removeAllItems();
+        categoryContainer.removeAllItems();
         List<Category> listCategories = categoryService.listCategories(userIdentity.getUserAccount());
-
-        listCategories.forEach(category -> {
-            Item newItem = categoryTree.addItem(category.getId());
-            newItem.getItemProperty(COLUMN_NAME).setValue(category.getName());
-            newItem.getItemProperty(COLUMN_VALUE).setValue(category);
-        });
-        listCategories.forEach(category -> {
-            if (category.getParent() != null) {
-                categoryTree.setParent(category.getId(), category.getParent().getId());
-            }
-            categoryTree.setCollapsed(category.getId(), false);
-        });
-
-        categoryTree.getItemIds().forEach(it -> categoryTree.setCollapsed(it, false));
+        categoryContainer.addAll(listCategories);
+        categoryContainer.getItemIds().forEach(it -> categoryTree.setCollapsed(it, false));
 
         categoryChangedAction();
     }

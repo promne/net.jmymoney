@@ -5,8 +5,10 @@ import com.vaadin.data.Item;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.shared.ui.MultiSelectMode;
 import com.vaadin.shared.ui.datefield.Resolution;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.DateField;
@@ -45,13 +47,12 @@ import org.slf4j.Logger;
 import at.downdrown.vaadinaddons.highchartsapi.HighChart;
 import at.downdrown.vaadinaddons.highchartsapi.exceptions.HighChartsException;
 import at.downdrown.vaadinaddons.highchartsapi.model.Axis.AxisValueType;
-import at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration;
 import at.downdrown.vaadinaddons.highchartsapi.model.ChartType;
 import at.downdrown.vaadinaddons.highchartsapi.model.data.HighChartsData;
 import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.HighChartsPlotOptionsImpl.Steps;
-import at.downdrown.vaadinaddons.highchartsapi.model.plotoptions.LineChartPlotOptions;
-import at.downdrown.vaadinaddons.highchartsapi.model.series.LineChartSeries;
+import at.downdrown.vaadinaddons.highchartsapi.model.series.HighChartsSeries;
 import net.jmymoney.core.UserIdentity;
+import net.jmymoney.core.data.CategoryContainer;
 import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
 import net.jmymoney.core.entity.Account;
@@ -63,7 +64,11 @@ import net.jmymoney.core.theme.ThemeResourceConstatns;
 import net.jmymoney.core.theme.ThemeStyles;
 import net.jmymoney.core.util.DateMonthRoundConverter;
 import net.jmymoney.tools.highcharts.BigDecimalData;
+import net.jmymoney.tools.highcharts.ChartConfiguration;
+import net.jmymoney.tools.highcharts.ChartConfiguration.PlotLine;
 import net.jmymoney.tools.highcharts.HighChartFactoryProxy;
+import net.jmymoney.tools.highcharts.SPLineChartPlotOptions;
+import net.jmymoney.tools.highcharts.SPLineChartSeries;
 
 @CDIView(value = ReportView.NAME)
 public class ReportView extends VerticalLayout implements View {
@@ -75,6 +80,7 @@ public class ReportView extends VerticalLayout implements View {
     private static final String COLUMN_CATEGORY_REPORT = "column_category_report";
     private static final String COLUMN_SUM_ALL_TIME = "column_sum_all_time";
     
+    private static final String TEXT_WITHOUT_CATEGORY = "Without category";
 
     private ComboBox granularityComboBox;
     private DateField filterFromDate;
@@ -101,7 +107,11 @@ public class ReportView extends VerticalLayout implements View {
     private OptionGroup filterAccounts;
 
     private OptionGroup filterCategoriesType;
-    private OptionGroup filterCategories;
+    
+    private CategoryContainer filterCategoryContainer = new CategoryContainer();
+    private TreeTable filterCategoryTree = new TreeTable(null, filterCategoryContainer); 
+    
+    private CheckBox includeWithoutCategory;
 
     @PostConstruct
     private void init() {
@@ -184,14 +194,16 @@ public class ReportView extends VerticalLayout implements View {
         Layout categoriesSelectionLayout = new VerticalLayout(new Label(selectedCategories));
 
         Layout categoryGroupOperation = new HorizontalLayout();
-        categoryGroupOperation.addComponent(new Button("All", event -> filterCategories.getItemIds().stream().forEach(i -> filterCategories.select(i))));
-        categoryGroupOperation.addComponent(new Button("None", event -> filterCategories.getItemIds().stream().forEach(i -> filterCategories.unselect(i))));
+        categoryGroupOperation.addComponent(new Button("All", event -> filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i))));
+        categoryGroupOperation.addComponent(new Button("None", event -> filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.unselect(i))));
         categoriesSelectionLayout.addComponent(categoryGroupOperation);
         
-        filterCategories = new OptionGroup();
-        filterCategories.setMultiSelect(true);
-        filterCategories.setItemCaptionPropertyId(Category.PROPERTY_NAME);
-        categoriesSelectionLayout.addComponent(filterCategories);
+        filterCategoryTree.setVisibleColumns(Category.PROPERTY_NAME);
+        filterCategoryTree.setSelectable(true);
+        filterCategoryTree.setMultiSelect(true);
+        filterCategoryTree.setMultiSelectMode(MultiSelectMode.SIMPLE);
+        filterCategoryTree.setSizeFull();
+        categoriesSelectionLayout.addComponent(filterCategoryTree);
         
         filterCategoriesType = new OptionGroup();
         filterCategoriesType.setMultiSelect(false);
@@ -213,10 +225,10 @@ public class ReportView extends VerticalLayout implements View {
             
             @Override
             public String getMinimizedValueAsHTML() {
-                Collection<Category> selected = (Collection<Category>) filterCategories.getValue();
+                Collection<Category> selected = (Collection<Category>) filterCategoryTree.getValue();
                 String result = "None";
                 if (!selected.isEmpty()) {
-                    if (selected.size()==filterCategories.getItemIds().size()) {
+                    if (selected.size()==filterCategoryContainer.getItemIds().size()) {
                         result = "All";
                     } else {
                         result = selected.stream().map(Category::getName).collect(Collectors.joining(", "));
@@ -232,6 +244,8 @@ public class ReportView extends VerticalLayout implements View {
             filterChanged();
         }});
         categorySelectionView.setHideOnMouseOut(false);
+        
+        categoriesSelectionLayout.addComponent(includeWithoutCategory = new CheckBox("Include empty category items", true));
         categoriesSelectionLayout.addComponent(new Button("Apply", event -> categorySelectionView.setPopupVisible(false)));
         filterLayout.addComponent(categorySelectionView);
         
@@ -246,7 +260,7 @@ public class ReportView extends VerticalLayout implements View {
             Item item = reportTable.getItem(itemId);
             if (item.getItemProperty(COLUMN_CATEGORY_REPORT).getValue() != null) {
                 String rowName = ((CategoryReportRow) item.getItemProperty(COLUMN_CATEGORY_REPORT).getValue()).getName();
-                return rowName == null ? "Without category" : rowName;
+                return rowName == null ? TEXT_WITHOUT_CATEGORY : rowName;
             }
             return null;
         } );
@@ -386,11 +400,12 @@ public class ReportView extends VerticalLayout implements View {
         chartLayout.removeAllComponents();
         
         ChartConfiguration lineConfiguration = new ChartConfiguration();
-        lineConfiguration.setChartType(ChartType.LINE);
+        lineConfiguration.setChartType(ChartType.SPLINE);
         lineConfiguration.setLegendEnabled(true);
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
+        lineConfiguration.getyAxisPlotLines().add(new PlotLine().setColor("red").setValue(0f).setWidth(3));
         
-        LineChartPlotOptions lineChartPlotOptions = new LineChartPlotOptions();
+        SPLineChartPlotOptions lineChartPlotOptions = new SPLineChartPlotOptions();
         lineChartPlotOptions.setSteps(Steps.FALSE);
         lineConfiguration.setPlotOptions(lineChartPlotOptions);
         lineChartPlotOptions.setDataLabelsEnabled(false);
@@ -398,13 +413,16 @@ public class ReportView extends VerticalLayout implements View {
         Map<Long, List<HighChartsData>> chartDataCategorySeries = new HashMap<>();
         
         for (CategoryReport report : reports) {
-            if (report.getCategory() == null) {
-                continue;
+            Category reportCategory = report.getCategory();
+            if (reportCategory == null) {
+                reportCategory = new Category();
+                reportCategory.setId(0L);
+                reportCategory.setName(TEXT_WITHOUT_CATEGORY);
             }
             List<HighChartsData> seriesData = new ArrayList<>();
-            chartDataCategorySeries.put(report.getCategory().getId(), seriesData);
+            chartDataCategorySeries.put(reportCategory.getId(), seriesData);
             
-            LineChartSeries series = new LineChartSeries(report.getCategory().getName(), seriesData);
+            HighChartsSeries series = new SPLineChartSeries(reportCategory.getName(), seriesData);
             lineConfiguration.getSeriesList().add(series);
             
             for (IncomeExpenseTouple incomeAndExpense : report.getIncomesAndExpenses()) {
@@ -450,12 +468,12 @@ public class ReportView extends VerticalLayout implements View {
             return;
         }
         
-        Collection<Category> selectedCategoriesForReport = (Collection<Category>)filterCategories.getValue();
-        if (selectedCategoriesForReport.isEmpty()) {
+        Collection<Category> selectedCategoriesForReport = (Collection<Category>)filterCategoryTree.getValue();
+        if (selectedCategoriesForReport.isEmpty() && !includeWithoutCategory.getValue()) {
             return;
         }
         
-        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate, toDate, temporalUnit, selectedAccountsForReport, true, filterCategoriesType.getValue()==Boolean.TRUE, selectedCategoriesForReport);
+        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate, toDate, temporalUnit, selectedAccountsForReport, true, filterCategoriesType.getValue()==Boolean.TRUE, selectedCategoriesForReport, includeWithoutCategory.getValue());
         Collections.sort(reports, (c1, c2) -> {
             if (c1.getCategory() == null) {
                 return c2.getCategory() == null ? 0 : 1;
@@ -477,8 +495,12 @@ public class ReportView extends VerticalLayout implements View {
         filterAccounts.setContainerDataSource(new BeanItemContainer<>(Account.class, accountService.list(userIdentity.getUserAccount())));
         filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i));
 
-        filterCategories.setContainerDataSource(new BeanItemContainer<>(Category.class, categoryService.listCategories(userIdentity.getUserAccount())));
-        filterCategories.getItemIds().stream().forEach(i -> filterCategories.select(i));
+        filterCategoryContainer.removeAllItems();
+        filterCategoryContainer.addAll(categoryService.listCategories(userIdentity.getUserAccount()));
+        filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i));
+        filterCategoryContainer.getItemIds().forEach(it -> filterCategoryTree.setCollapsed(it, false));
+        
+        includeWithoutCategory.setValue(Boolean.TRUE);
         
         filterChanged();
     }

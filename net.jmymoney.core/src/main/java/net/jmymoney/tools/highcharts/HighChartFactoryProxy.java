@@ -1,8 +1,9 @@
 package net.jmymoney.tools.highcharts;
 
+import java.util.stream.Collectors;
+
 import at.downdrown.vaadinaddons.highchartsapi.HighChart;
 import at.downdrown.vaadinaddons.highchartsapi.exceptions.HighChartsException;
-import at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration;
 
 public class HighChartFactoryProxy {
 
@@ -14,6 +15,13 @@ public class HighChartFactoryProxy {
         
         highChartValue = highChartValue.replaceAll("step: 'FALSE'", "step: false");
         highChartValue = highChartValue.replaceAll("step: 'TRUE'", "step: true");
+        
+        if (!configuration.getyAxisPlotLines().isEmpty()) {
+            StringBuilder sb = new StringBuilder("plotLines: [");
+            sb.append(configuration.getyAxisPlotLines().stream().map(p -> String.format("{ color: '%s', value: %s, width: %s, zIndex: 3}", p.getColor(), p.getValue(), p.getWidth())).collect(Collectors.joining(", ")));
+            sb.append("],");
+            highChartValue = highChartValue.replaceAll("yAxis: \\{", "yAxis: { "+sb.toString());
+        }
         
         tempChart.setChartoptions(highChartValue);
         tempChart.setChartConfiguration(configuration);

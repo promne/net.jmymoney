@@ -31,6 +31,7 @@ import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Category;
+import net.jmymoney.core.entity.SplitPartner;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.entity.UserAccount;
@@ -49,11 +50,13 @@ public class ReportingService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, Collection<Account> includeAccounts, boolean excludeTransfers, boolean includeSubCategories, Collection<Category> includeCategories) {
+    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, Collection<Account> includeAccounts, boolean excludeTransfers, boolean includeSubCategories, Collection<Category> includeCategories, boolean includeWithoutCategory) {
         assert dateFrom.before(dateTo);
 
         List<CategoryReport> result = categoryService.listCategories(userAccount).stream().map(category -> new CategoryReport(category)).collect(Collectors.toList());
-        result.add(new CategoryReport(null)); // unassigned
+        if (includeWithoutCategory) {
+            result.add(new CategoryReport(null)); // unassigned
+        }
 
         Date dateFrameStart = dateFrom;
         while (dateFrameStart.before(dateTo)) {
@@ -64,12 +67,12 @@ public class ReportingService {
             CriteriaQuery<Tuple> cq = cb.createQuery(Tuple.class);
 
             Root<Transaction> trRoot = cq.from(Transaction.class);
-            Join<Transaction, TransactionSplit> trSplits = trRoot.join("splits");
+            Join<Transaction, TransactionSplit> trSplits = trRoot.join(Transaction.PROPERTY_SPLITS);
 
-            cq.multiselect(trSplits.get("category").get("id"), cb.sum(trSplits.<BigDecimal> get("amount")));
-            cq.groupBy(trSplits.get("category").get("id"));
+            cq.multiselect(trSplits.get(TransactionSplit.PROPERTY_CATEGORY).get(Category.PROPERTY_ID), cb.sum(trSplits.<BigDecimal> get(TransactionSplit.PROPERTY_AMOUNT)));
+            cq.groupBy(trSplits.get(TransactionSplit.PROPERTY_CATEGORY).get(Category.PROPERTY_ID));
             
-            Predicate basePredicate = cb.and(cb.equal(trRoot.get(Transaction.PROPERTY_ACCOUNT).get("userAccount"), userAccount), cb.between(trRoot.get(Transaction.PROPERTY_TIMESTAMP), dateFrameStart, dateFrameEnd), trRoot.get(Transaction.PROPERTY_ACCOUNT).in(includeAccounts));
+            Predicate basePredicate = cb.and(cb.equal(trRoot.get(Transaction.PROPERTY_ACCOUNT).get(SplitPartner.PROPERTY_USER_ACCOUNT), userAccount), cb.between(trRoot.get(Transaction.PROPERTY_TIMESTAMP), dateFrameStart, dateFrameEnd), trRoot.get(Transaction.PROPERTY_ACCOUNT).in(includeAccounts));
             if (excludeTransfers) {
                 Subquery<Account> subquery = cq.subquery(Account.class);
                 Root<Account> subAccount = subquery.from(Account.class);
@@ -77,12 +80,15 @@ public class ReportingService {
                 subquery.where(cb.and(cb.equal(subAccount, trSplits.get(TransactionSplit.PROPERTY_SPLIT_PARTNER)), subAccount.in(includeAccounts)));
                 basePredicate = cb.and(basePredicate, cb.exists(subquery).not());
             }
+            if (!includeWithoutCategory) {
+                basePredicate = cb.and(basePredicate, cb.isNotNull(trSplits.get(TransactionSplit.PROPERTY_CATEGORY)));
+            }
             
             
-            cq.where(cb.and(basePredicate, cb.ge(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
+            cq.where(cb.and(basePredicate, cb.ge(trSplits.<BigDecimal> get(TransactionSplit.PROPERTY_AMOUNT), BigDecimal.ZERO)));
             List<Tuple> foundDataPlus = entityManager.createQuery(cq).getResultList();
 
-            cq.where(cb.and(basePredicate, cb.le(trSplits.<BigDecimal> get("amount"), BigDecimal.ZERO)));
+            cq.where(cb.and(basePredicate, cb.le(trSplits.<BigDecimal> get(TransactionSplit.PROPERTY_AMOUNT), BigDecimal.ZERO)));
             List<Tuple> foundDataMinus = entityManager.createQuery(cq).getResultList();
             
             
@@ -133,7 +139,7 @@ public class ReportingService {
     
     
     public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, boolean excludeTransfers) {
-        return getCategoryReport(userAccount, dateFrom, dateTo, groupByUnit, accountService.list(userAccount), excludeTransfers, false, categoryService.listCategories(userAccount));
+        return getCategoryReport(userAccount, dateFrom, dateTo, groupByUnit, accountService.list(userAccount), excludeTransfers, false, categoryService.listCategories(userAccount), true);
     }
 
 }
