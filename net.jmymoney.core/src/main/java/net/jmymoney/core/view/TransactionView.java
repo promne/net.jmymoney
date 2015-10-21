@@ -441,8 +441,10 @@ public class TransactionView extends VerticalLayout implements View {
                 break;
             }
         }
-        TableHelper.putItemInViewport(foundItem, transactionTable);
-        loadTransaction(foundItem.getTransaction());
+        if (foundItem!=null) {
+            TableHelper.putItemInViewport(foundItem, transactionTable);
+            loadTransaction(foundItem.getTransaction());
+        }
     }
 
     private void loadTransactions(Account account) {

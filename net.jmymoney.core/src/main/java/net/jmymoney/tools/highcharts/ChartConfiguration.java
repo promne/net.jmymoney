@@ -5,6 +5,10 @@ import java.util.List;
 
 public class ChartConfiguration extends at.downdrown.vaadinaddons.highchartsapi.model.ChartConfiguration {
 
+    public static class Color {
+        public static final String LIGHT_SALMON_PINK = "#FF9999";
+    }
+    
     public static class PlotLine {
         private String color;
         private Float value;

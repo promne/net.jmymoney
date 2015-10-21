@@ -33,9 +33,13 @@ public class CategoryReport {
     }
  
     public IncomeExpenseTouple getTotal() {
-        return getIncomesAndExpenses().stream().reduce(new IncomeExpenseTouple(), IncomeExpenseTouple::add);
+        return incomesAndExpenses.stream().reduce(new IncomeExpenseTouple(), IncomeExpenseTouple::add);
     }
 
+    public boolean isEmpty() {
+        return !incomesAndExpenses.stream().anyMatch(t -> t.getIncome().signum()!=0 || t.getExpense().signum()!=0);
+    }
+    
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "-" + category==null ? null : category.getName();

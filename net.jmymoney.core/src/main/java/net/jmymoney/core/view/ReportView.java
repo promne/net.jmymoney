@@ -22,6 +22,7 @@ import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.TreeTable;
 import com.vaadin.ui.VerticalLayout;
 
+import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -33,9 +34,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -102,7 +103,8 @@ public class ReportView extends VerticalLayout implements View {
     private CategoryService categoryService;
 
     private TreeTable reportTable;
-    private Layout chartLayout;
+    private Layout categoryChartLayout;
+    private Layout balanceChartLayout;
 
     private OptionGroup filterAccounts;
 
@@ -112,6 +114,10 @@ public class ReportView extends VerticalLayout implements View {
     private TreeTable filterCategoryTree = new TreeTable(null, filterCategoryContainer); 
     
     private CheckBox includeWithoutCategory;
+
+    private CheckBox excludeEmptyRows;
+
+    private TabSheet reportTabs;
 
     @PostConstruct
     private void init() {
@@ -147,13 +153,19 @@ public class ReportView extends VerticalLayout implements View {
 
         
         //accounts filter
+        String selectedAccounts = "Click to select accounts";
+        VerticalLayout accountsSelectionLayout = new VerticalLayout(new Label(selectedAccounts));
+        accountsSelectionLayout.setSpacing(true);
+        
+        HorizontalLayout accountGroupOperation = new HorizontalLayout();
+        accountGroupOperation.setSpacing(true);
+        accountGroupOperation.addComponent(new Button("All", event -> filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i))));
+        accountGroupOperation.addComponent(new Button("None", event -> filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.unselect(i))));
+        accountsSelectionLayout.addComponent(accountGroupOperation);
+        
         filterAccounts = new OptionGroup();
         filterAccounts.setItemCaptionPropertyId(Account.PROPERTY_NAME);
         filterAccounts.setMultiSelect(true);
-
-        String selectedAccounts = "Click to select accounts";
-        Layout accountsSelectionLayout = new VerticalLayout(new Label(selectedAccounts));
-        accountsSelectionLayout.addComponent(new Button("Select all", event -> filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i))));
         accountsSelectionLayout.addComponent(filterAccounts);
         
         
@@ -191,9 +203,11 @@ public class ReportView extends VerticalLayout implements View {
         
         // categories filter
         String selectedCategories = "Click to select categories";
-        Layout categoriesSelectionLayout = new VerticalLayout(new Label(selectedCategories));
+        VerticalLayout categoriesSelectionLayout = new VerticalLayout(new Label(selectedCategories));
+        categoriesSelectionLayout.setSpacing(true);
 
-        Layout categoryGroupOperation = new HorizontalLayout();
+        HorizontalLayout categoryGroupOperation = new HorizontalLayout();
+        categoryGroupOperation.setSpacing(true);
         categoryGroupOperation.addComponent(new Button("All", event -> filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i))));
         categoryGroupOperation.addComponent(new Button("None", event -> filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.unselect(i))));
         categoriesSelectionLayout.addComponent(categoryGroupOperation);
@@ -249,6 +263,10 @@ public class ReportView extends VerticalLayout implements View {
         categoriesSelectionLayout.addComponent(new Button("Apply", event -> categorySelectionView.setPopupVisible(false)));
         filterLayout.addComponent(categorySelectionView);
         
+        excludeEmptyRows = new CheckBox("Exclude empty rows", true);
+        excludeEmptyRows.addValueChangeListener(e -> filterChanged());
+        filterLayout.addComponent(excludeEmptyRows);
+        
         addComponent(filterLayout);
 
         reportTable = new TreeTable("Report - incomes and expenses");
@@ -291,14 +309,17 @@ public class ReportView extends VerticalLayout implements View {
         reportTable.setColumnHeaders("Category", "SUM");
 
         
-        chartLayout = new VerticalLayout();
-        chartLayout.setSizeFull();
+        categoryChartLayout = new VerticalLayout();
+        categoryChartLayout.setSizeFull();
         
+        balanceChartLayout = new VerticalLayout();
+        balanceChartLayout.setSizeFull();
         
-        TabSheet reportTabs = new TabSheet();
+        reportTabs = new TabSheet();
         reportTabs.setSizeFull();
         reportTabs.addTab(reportTable, "Table", ThemeResourceConstatns.TABLE);
-        reportTabs.addTab(chartLayout, "Chart", ThemeResourceConstatns.CHART);
+        reportTabs.addTab(categoryChartLayout, "Category chart", ThemeResourceConstatns.CHART);
+        reportTabs.addTab(balanceChartLayout, "Balance chart", ThemeResourceConstatns.CHART);
         
         reportTabs.addSelectedTabChangeListener(e -> filterChanged());
         
@@ -308,10 +329,17 @@ public class ReportView extends VerticalLayout implements View {
 
     private void refreshReportTable(List<CategoryReport> reports, Date fromDate, TemporalUnit temporalUnit) {
         reportTable.removeAllItems();
-        
         // TODO: smarter replace
         for (int genColumnId = 0; reportTable.getColumnGenerator(COLUMN_DATE + genColumnId) != null; genColumnId++) {
             reportTable.removeGeneratedColumn(COLUMN_DATE + genColumnId);
+        }
+        
+        if (excludeEmptyRows.getValue()) {
+            reports = filterOutEmptyRows(reports, false);
+        }
+        
+        if (reports.isEmpty()) {
+            return;
         }
 
         // actually add. Be careful because this triggers generated columns
@@ -396,21 +424,26 @@ public class ReportView extends VerticalLayout implements View {
         } );        
     }
     
-    private void refreshReportChart(List<CategoryReport> reports, Date fromDate, TemporalUnit temporalUnit) {
-        chartLayout.removeAllComponents();
+    private void refreshCategoryReportChart(List<CategoryReport> reports, Date fromDate, TemporalUnit temporalUnit) {
+        categoryChartLayout.removeAllComponents();
+
+        if (excludeEmptyRows.getValue()) {
+            reports = filterOutEmptyRows(reports, true);
+        }
+        if (reports.isEmpty()) {
+            return;
+        }
         
         ChartConfiguration lineConfiguration = new ChartConfiguration();
         lineConfiguration.setChartType(ChartType.SPLINE);
         lineConfiguration.setLegendEnabled(true);
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
-        lineConfiguration.getyAxisPlotLines().add(new PlotLine().setColor("red").setValue(0f).setWidth(3));
+        lineConfiguration.getyAxisPlotLines().add(new PlotLine().setColor(ChartConfiguration.Color.LIGHT_SALMON_PINK).setValue(0f).setWidth(1));
         
         SPLineChartPlotOptions lineChartPlotOptions = new SPLineChartPlotOptions();
         lineChartPlotOptions.setSteps(Steps.FALSE);
         lineConfiguration.setPlotOptions(lineChartPlotOptions);
         lineChartPlotOptions.setDataLabelsEnabled(false);
-        
-        Map<Long, List<HighChartsData>> chartDataCategorySeries = new HashMap<>();
         
         for (CategoryReport report : reports) {
             Category reportCategory = report.getCategory();
@@ -420,13 +453,13 @@ public class ReportView extends VerticalLayout implements View {
                 reportCategory.setName(TEXT_WITHOUT_CATEGORY);
             }
             List<HighChartsData> seriesData = new ArrayList<>();
-            chartDataCategorySeries.put(reportCategory.getId(), seriesData);
             
             HighChartsSeries series = new SPLineChartSeries(reportCategory.getName(), seriesData);
             lineConfiguration.getSeriesList().add(series);
             
+            boolean negateSeries = report.getTotal().getBalance().compareTo(BigDecimal.ZERO) > 0;
             for (IncomeExpenseTouple incomeAndExpense : report.getIncomesAndExpenses()) {
-                seriesData.add(new BigDecimalData(incomeAndExpense.getBalance()));
+                seriesData.add(new BigDecimalData(negateSeries ? incomeAndExpense.getBalance() : incomeAndExpense.getBalance().negate()));
             }
         }
         
@@ -443,7 +476,74 @@ public class ReportView extends VerticalLayout implements View {
         try {
             HighChart renderChart = HighChartFactoryProxy.renderChart(lineConfiguration);
             renderChart.setSizeFull();
-            chartLayout.addComponent(renderChart);
+            categoryChartLayout.addComponent(renderChart);
+        } catch (HighChartsException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private void refreshBalanceReportChart(List<CategoryReport> reports, Date fromDate, TemporalUnit temporalUnit) {
+        balanceChartLayout.removeAllComponents();
+        
+        if (reports.isEmpty()) {
+            return;
+        }
+        
+        ChartConfiguration lineConfiguration = new ChartConfiguration();
+        lineConfiguration.setChartType(ChartType.SPLINE);
+        lineConfiguration.setLegendEnabled(true);
+        lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
+        lineConfiguration.getyAxisPlotLines().add(new PlotLine().setColor(ChartConfiguration.Color.LIGHT_SALMON_PINK).setValue(0f).setWidth(1));
+        
+        SPLineChartPlotOptions lineChartPlotOptions = new SPLineChartPlotOptions();
+        lineChartPlotOptions.setSteps(Steps.FALSE);
+        lineConfiguration.setPlotOptions(lineChartPlotOptions);
+        lineChartPlotOptions.setDataLabelsEnabled(false);
+        
+        
+        List<IncomeExpenseTouple> balance = reports.stream().map(CategoryReport::getIncomesAndExpenses).reduce((List) new ArrayList<>(), (t, u) -> {
+            int resultSize = Math.max(t.size(), u.size());
+            List<IncomeExpenseTouple> result = new ArrayList<>(resultSize);
+            for (int i=0; i<resultSize; i++) {
+                IncomeExpenseTouple current = new IncomeExpenseTouple();
+                if (t.size()>i) {
+                    current.add(t.get(i));
+                }
+                if (u.size()>i) {
+                    current.add(u.get(i));
+                }
+                result.add(current);
+            }
+            return result;
+        });
+        
+        List<HighChartsData> seriesExpenseData = new ArrayList<>();
+        List<HighChartsData> seriesIncomeData = new ArrayList<>();
+        List<HighChartsData> seriesBalanceData = new ArrayList<>();
+        for (IncomeExpenseTouple incomeAndExpense : balance) {
+            seriesExpenseData.add(new BigDecimalData(incomeAndExpense.getExpense().negate()));
+            seriesIncomeData.add(new BigDecimalData(incomeAndExpense.getIncome()));
+            seriesBalanceData.add(new BigDecimalData(incomeAndExpense.getBalance()));
+        }
+        
+        lineConfiguration.getSeriesList().add(new SPLineChartSeries("Expenses", seriesExpenseData));
+        lineConfiguration.getSeriesList().add(new SPLineChartSeries("Income", seriesIncomeData));
+        lineConfiguration.getSeriesList().add(new SPLineChartSeries("Balance", seriesBalanceData));
+        
+        for (int gcId = 0; reports.get(0).getIncomesAndExpenses().size() > gcId; gcId++) {
+            Date dateFrameStart = Date.from((fromDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    .atStartOfDay(ZoneId.systemDefault()).plus(gcId, temporalUnit).toInstant()));
+            Date dateFrameEnd = Date.from((fromDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    .atStartOfDay(ZoneId.systemDefault()).plus(gcId + 1, temporalUnit).minusDays(1).toInstant()));
+            String header = String.format("%s - %s", DateFormat.getDateInstance().format(dateFrameStart),
+                    DateFormat.getDateInstance().format(dateFrameEnd));
+            lineConfiguration.getxAxis().getCategories().add(header);            
+        }        
+        
+        try {
+            HighChart renderChart = HighChartFactoryProxy.renderChart(lineConfiguration);
+            renderChart.setSizeFull();
+            balanceChartLayout.addComponent(renderChart);
         } catch (HighChartsException e) {
             throw new IllegalStateException(e);
         }
@@ -484,23 +584,61 @@ public class ReportView extends VerticalLayout implements View {
             return c1.getCategory().getName().compareToIgnoreCase(c2.getCategory().getName());
         } );
 
-        
-        refreshReportTable(reports, fromDate, temporalUnit);
-        refreshReportChart(reports, fromDate, temporalUnit);
+        Component selectedTab = reportTabs.getSelectedTab();
+        if (selectedTab==reportTable) {
+            refreshReportTable(reports, fromDate, temporalUnit);
+        } else if (selectedTab==categoryChartLayout) {
+            refreshCategoryReportChart(reports, fromDate, temporalUnit);
+        } else if (selectedTab==balanceChartLayout) {
+            refreshBalanceReportChart(reports, fromDate, temporalUnit);
+        } else {
+            throw new IllegalStateException("Unknown tab" + selectedTab);
+        }
+    }
+    
+    /**
+     * @param reports input reports
+     * @param filterOutParents removes parent category if empty leaving children 
+     * @return
+     */
+    private List<CategoryReport> filterOutEmptyRows(List<CategoryReport> reports, boolean filterOutParents) {
+        Predicate<CategoryReport> isEmptyPredicate;
+        if (filterOutParents) {
+            isEmptyPredicate = CategoryReport::isEmpty;
+        } else {
+            isEmptyPredicate = i -> {
+                BiFunction<BiFunction, CategoryReport, Boolean> h = (f,d) -> {
+                    boolean result = d.isEmpty();
+                    if (result) {
+                        result &= reports.stream()
+                                .filter(p -> p.getCategory()!=null && p.getCategory().getParent()!=null && p.getCategory().getParent().equals(d.getCategory()))
+                                .map(p -> (Boolean)f.apply(f, p))
+                                .reduce(Boolean.TRUE, (x,y) -> x && y);
+                    }
+                    return result;                
+                };
+                return h.apply(h,i);
+            };
+        }
+        return reports.stream().filter(p -> !isEmptyPredicate.test(p)).collect(Collectors.toList());
     }
     
     @Override
     public void enter(ViewChangeEvent event) {
         //refreshAccounts
-        filterAccounts.setContainerDataSource(new BeanItemContainer<>(Account.class, accountService.list(userIdentity.getUserAccount())));
-        filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i));
+        List<Account> accounts = accountService.list(userIdentity.getUserAccount());
+        if (filterAccounts.getContainerDataSource().size()!=accounts.size() || accounts.stream().anyMatch(i -> filterAccounts.getItem(i)==null)) {
+            filterAccounts.setContainerDataSource(new BeanItemContainer<>(Account.class, accounts));
+            filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i));            
+        }
 
-        filterCategoryContainer.removeAllItems();
-        filterCategoryContainer.addAll(categoryService.listCategories(userIdentity.getUserAccount()));
-        filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i));
-        filterCategoryContainer.getItemIds().forEach(it -> filterCategoryTree.setCollapsed(it, false));
-        
-        includeWithoutCategory.setValue(Boolean.TRUE);
+        List<Category> listCategories = categoryService.listCategories(userIdentity.getUserAccount());
+        if (filterCategoryContainer.size()!=listCategories.size() || listCategories.stream().anyMatch(i -> filterCategoryContainer.getItem(i)==null)) {
+            filterCategoryContainer.removeAllItems();
+            filterCategoryContainer.addAll(listCategories);
+            filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i));
+            filterCategoryContainer.getItemIds().forEach(it -> filterCategoryTree.setCollapsed(it, false));
+        }
         
         filterChanged();
     }
