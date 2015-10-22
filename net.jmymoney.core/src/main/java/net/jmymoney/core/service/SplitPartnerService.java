@@ -13,9 +13,9 @@ import javax.persistence.criteria.Root;
 import org.slf4j.Logger;
 
 import net.jmymoney.core.entity.Payee;
+import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.SplitPartner;
 import net.jmymoney.core.entity.TransactionSplit;
-import net.jmymoney.core.entity.UserAccount;
 
 @Stateless
 public class SplitPartnerService {
@@ -26,11 +26,11 @@ public class SplitPartnerService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public List<Payee> listPayees(UserAccount userAccount) {
+    public List<Payee> listPayees(Profile profile) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Payee> cq = cb.createQuery(Payee.class);
         Root<Payee> root = cq.from(Payee.class);
-        cq.where(cb.equal(root.get("userAccount"), userAccount));
+        cq.where(cb.equal(root.get(Payee.PROPERTY_PROFILE), profile));
         return entityManager.createQuery(cq).getResultList();
     }
 

@@ -5,6 +5,7 @@ import java.time.ZoneId;
 import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -25,22 +26,17 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Subquery;
 
-import org.slf4j.Logger;
-
 import net.jmymoney.core.domain.CategoryReport;
 import net.jmymoney.core.domain.IncomeExpenseTouple;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Category;
+import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.SplitPartner;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
-import net.jmymoney.core.entity.UserAccount;
 
 @Stateless
 public class ReportingService {
-
-    @Inject
-    private Logger log;
 
     @Inject
     private CategoryService categoryService;
@@ -50,10 +46,14 @@ public class ReportingService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, Collection<Account> includeAccounts, boolean excludeTransfers, boolean includeSubCategories, Collection<Category> includeCategories, boolean includeWithoutCategory) {
+    public List<CategoryReport> getCategoryReport(Profile profile, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, Collection<Account> includeAccounts, boolean excludeTransfers, boolean includeSubCategories, Collection<Category> includeCategories, boolean includeWithoutCategory) {
         assert dateFrom.before(dateTo);
 
-        List<CategoryReport> result = categoryService.listCategories(userAccount).stream().map(category -> new CategoryReport(category)).collect(Collectors.toList());
+        if (includeAccounts.isEmpty() || includeCategories.isEmpty()) {
+            return Collections.EMPTY_LIST;
+        }
+        
+        List<CategoryReport> result = categoryService.listCategories(profile).stream().map(category -> new CategoryReport(category)).collect(Collectors.toList());
         if (includeWithoutCategory) {
             result.add(new CategoryReport(null)); // unassigned
         }
@@ -72,7 +72,7 @@ public class ReportingService {
             cq.multiselect(trSplits.get(TransactionSplit.PROPERTY_CATEGORY).get(Category.PROPERTY_ID), cb.sum(trSplits.<BigDecimal> get(TransactionSplit.PROPERTY_AMOUNT)));
             cq.groupBy(trSplits.get(TransactionSplit.PROPERTY_CATEGORY).get(Category.PROPERTY_ID));
             
-            Predicate basePredicate = cb.and(cb.equal(trRoot.get(Transaction.PROPERTY_ACCOUNT).get(SplitPartner.PROPERTY_USER_ACCOUNT), userAccount), cb.between(trRoot.get(Transaction.PROPERTY_TIMESTAMP), dateFrameStart, dateFrameEnd), trRoot.get(Transaction.PROPERTY_ACCOUNT).in(includeAccounts));
+            Predicate basePredicate = cb.and(cb.equal(trRoot.get(Transaction.PROPERTY_ACCOUNT).get(SplitPartner.PROPERTY_PROFILE), profile), cb.between(trRoot.get(Transaction.PROPERTY_TIMESTAMP), dateFrameStart, dateFrameEnd), trRoot.get(Transaction.PROPERTY_ACCOUNT).in(includeAccounts));
             if (excludeTransfers) {
                 Subquery<Account> subquery = cq.subquery(Account.class);
                 Root<Account> subAccount = subquery.from(Account.class);
@@ -138,8 +138,8 @@ public class ReportingService {
     }
     
     
-    public List<CategoryReport> getCategoryReport(UserAccount userAccount, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, boolean excludeTransfers) {
-        return getCategoryReport(userAccount, dateFrom, dateTo, groupByUnit, accountService.list(userAccount), excludeTransfers, false, categoryService.listCategories(userAccount), true);
+    public List<CategoryReport> getCategoryReport(Profile profile, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, boolean excludeTransfers) {
+        return getCategoryReport(profile, dateFrom, dateTo, groupByUnit, accountService.list(profile), excludeTransfers, false, categoryService.listCategories(profile), true);
     }
 
 }

@@ -180,7 +180,7 @@ public class PartnerView extends VerticalLayout implements View {
                 if (DialogResultType.OK.equals(closeType)) {
                         Payee payee = new Payee();
                         payee.setName((String) resultValue);
-                        payee.setUserAccount(userIdentity.getUserAccount());
+                        payee.setProfile(userIdentity.getProfile());
 
                         splitPartnerService.create(payee);
                         refreshPartners();
@@ -219,7 +219,7 @@ public class PartnerView extends VerticalLayout implements View {
    
     private void refreshPartners() {
         partnerContainer.removeAllItems();
-        partnerContainer.addAll(splitPartnerService.listPayees(userIdentity.getUserAccount()));
+        partnerContainer.addAll(splitPartnerService.listPayees(userIdentity.getProfile()));
     }
 
     public static void navigateWithPartner(Payee payee) {

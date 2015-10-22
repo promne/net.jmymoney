@@ -79,7 +79,7 @@ public class DashboardView extends VerticalLayout implements View {
     private void refresh() {
         removeAllComponents();
         
-        Label accountsHeaderLabel = new Label("<h2>"+messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD)+"</h2>", ContentMode.HTML);
+        Label accountsHeaderLabel = new Label("<h2>"+messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD)+"</h2> for profile " + userIdentity.getProfile().getName(), ContentMode.HTML);
         addComponent(accountsHeaderLabel);
 
         VerticalLayout dashContent = new VerticalLayout();
@@ -124,7 +124,7 @@ public class DashboardView extends VerticalLayout implements View {
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE;
         Instant iterationDate = currentDate.minus(REPORT_NUMBER_OF_DAYS-1, ChronoUnit.DAYS);
         while (!iterationDate.isAfter(currentDate)) {
-            List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount(), Date.from(iterationDate));
+            List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getProfile(), Date.from(iterationDate));
             for (AccountMetadata accountMetadata : accountMetadatas) {
                 List<HighChartsData> seriesData = accountSeries.get(accountMetadata.getAccount().getId());
                 if (seriesData == null) {
@@ -168,7 +168,7 @@ public class DashboardView extends VerticalLayout implements View {
         lineConfiguration.getxAxis().setAxisValueType(AxisValueType.DATETIME);
         
         while (!iterationDate.isAfter(currentDate)) {
-            List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount(), Date.from(iterationDate));
+            List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getProfile(), Date.from(iterationDate));
             
             seriesData.add(new BigDecimalData(accountMetadatas.stream().map(m -> m.getBalance()).reduce(BigDecimal.ZERO, BigDecimal::add)));
             
@@ -191,7 +191,7 @@ public class DashboardView extends VerticalLayout implements View {
         chartConfiguration.setChartType(ChartType.BAR);
         chartConfiguration.getxAxis().setLabelsEnabled(false);
         
-        List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getUserAccount(), new Date(new Date().getTime() - REPORT_NUMBER_OF_DAYS*24*60*60*1000L), new Date(), ChronoUnit.MONTHS, true);
+        List<CategoryReport> categoryReport = reportingService.getCategoryReport(userIdentity.getProfile(), new Date(new Date().getTime() - REPORT_NUMBER_OF_DAYS*24*60*60*1000L), new Date(), ChronoUnit.MONTHS, true);
         categoryReport.sort((i,j) -> i.getTotal().getExpense().compareTo(j.getTotal().getExpense()));
         
         categoryReport = categoryReport.stream().filter(
@@ -213,7 +213,7 @@ public class DashboardView extends VerticalLayout implements View {
     }    
     
     private Component getAccountBalanceChart() {
-        List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount());
+        List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getProfile());
         ChartConfiguration lineConfiguration = new ChartConfiguration();
         lineConfiguration.setTitle(messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD_ACCOUNT_BALANCE));
         lineConfiguration.setChartType(ChartType.BAR);

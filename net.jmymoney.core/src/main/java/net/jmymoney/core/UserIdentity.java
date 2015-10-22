@@ -4,23 +4,34 @@ import java.io.Serializable;
 
 import javax.enterprise.context.SessionScoped;
 
+import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.UserAccount;
 
 @SessionScoped
 public class UserIdentity implements Serializable {
 
-	private UserAccount userAccount;
+    private UserAccount userAccount;
 
-	public UserIdentity() {
-		super();
-	}
+    private Profile profile;
 
-	public UserAccount getUserAccount() {
-		return userAccount;
-	}
+    public UserIdentity() {
+        super();
+    }
 
-	public void setUserAccount(UserAccount userAccount) {
-		this.userAccount = userAccount;
-	}
-	
+    public UserAccount getUserAccount() {
+        return userAccount;
+    }
+
+    public void setUserAccount(UserAccount userAccount) {
+        this.userAccount = userAccount;
+    }
+
+    public Profile getProfile() {
+        return profile;
+    }
+
+    public void setProfile(Profile profile) {
+        this.profile = profile;
+    }
+
 }

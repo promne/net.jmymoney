@@ -299,7 +299,7 @@ public class TransactionField extends CustomField<Transaction> {
     private ComboBox createCategoryComboBox() {
         BeanContainer<Long, Category> categoryContainer = new BeanContainer<>(Category.class);
         categoryContainer.setBeanIdProperty("id");
-        categoryContainer.addAll(categoryService.listCategories(userIdentity.getUserAccount()));
+        categoryContainer.addAll(categoryService.listCategories(userIdentity.getProfile()));
                
         Object propertyDisplayName = "property_display_name";
         for (Long itemId : categoryContainer.getItemIds()) {
@@ -406,7 +406,7 @@ public class TransactionField extends CustomField<Transaction> {
                 if (DialogResultType.OK.equals(dialogResultType)) {
                     Payee newPartner = new Payee();
                     newPartner.setName(newItemCaption);
-                    newPartner.setUserAccount(userIdentity.getUserAccount());
+                    newPartner.setProfile(userIdentity.getProfile());
                     splitPartnerService.create(newPartner);
                     refreshSplitPartners(partnerContainer);
                     // TODO I know, it's necessary to update all
@@ -436,9 +436,9 @@ public class TransactionField extends CustomField<Transaction> {
 
     private List<SplitPartner> listSplitPartners() {
         List<SplitPartner> result = new ArrayList<>();
-        result.addAll(splitPartnerService.listPayees(userIdentity.getUserAccount()));
+        result.addAll(splitPartnerService.listPayees(userIdentity.getProfile()));
         if (getInternalValue() != null) {
-            result.addAll(accountService.list(userIdentity.getUserAccount()).stream().filter(splitPartner -> !splitPartner.getId().equals(getInternalValue().getAccount().getId()))
+            result.addAll(accountService.list(userIdentity.getProfile()).stream().filter(splitPartner -> !splitPartner.getId().equals(getInternalValue().getAccount().getId()))
                     .collect(Collectors.toList()));
         }
         result.sort((i, j) -> i.getName().compareToIgnoreCase(j.getName()));

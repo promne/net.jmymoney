@@ -23,7 +23,7 @@ public class UserAccountService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<UserAccount> cq = cb.createQuery(UserAccount.class);
         Root<UserAccount> root = cq.from(UserAccount.class);
-        cq.where(cb.equal(root.get("username"), username));
+        cq.where(cb.equal(root.get(UserAccount.PROPERTY_USERNAME), username));
 
         UserAccount result = null;
         List<UserAccount> resultList = entityManager.createQuery(cq).getResultList();

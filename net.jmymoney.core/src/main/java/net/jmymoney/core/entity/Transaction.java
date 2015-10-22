@@ -32,6 +32,7 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
+    public static final String PROPERTY_ID = "id";
 
     @NotNull
     @Column(name = "time_stamp")

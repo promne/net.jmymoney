@@ -399,8 +399,10 @@ public class TransactionView extends VerticalLayout implements View {
         // keep current selection if any
         Account selectedAccount = (Account) accountComboBox.getValue();
 
+        accountComboBox.setValue(null);
+        accountBalanceLabel.setValue("0");
         accountContainer.removeAllItems();
-        accountContainer.addAll(accountService.list(userIdentity.getUserAccount()));
+        accountContainer.addAll(accountService.list(userIdentity.getProfile()));
 
         if (selectedAccount != null) {
             for (Account account : accountContainer.getItemIds()) {
@@ -410,7 +412,6 @@ public class TransactionView extends VerticalLayout implements View {
                 }
             }
         }
-        refreshTransactions();
     }
 
     private void refreshTransactions() {
@@ -418,9 +419,6 @@ public class TransactionView extends VerticalLayout implements View {
         TransactionWrapper selectedItemId = (TransactionWrapper) transactionTable.getValue();
 
         Account account = (Account) accountComboBox.getValue();
-        if (account == null) {
-            return;
-        }
         loadTransactions(account);
 
         if (selectedItemId != null) {
@@ -449,6 +447,7 @@ public class TransactionView extends VerticalLayout implements View {
 
     private void loadTransactions(Account account) {
         transactionContainer.removeAllItems();
+        loadTransaction(null);
         if (account == null) {
             return;
         }
@@ -470,8 +469,6 @@ public class TransactionView extends VerticalLayout implements View {
         }
         accountBalanceLabel.setValue(accountBalance);
         accountBalanceLabel.markAsDirty();        
-        
-        loadTransaction(null);
     }
 
     private void loadTransaction(Transaction transaction) {

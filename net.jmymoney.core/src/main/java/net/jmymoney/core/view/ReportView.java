@@ -110,8 +110,7 @@ public class ReportView extends VerticalLayout implements View {
 
     private OptionGroup filterCategoriesType;
     
-    private CategoryContainer filterCategoryContainer = new CategoryContainer();
-    private TreeTable filterCategoryTree = new TreeTable(null, filterCategoryContainer); 
+    private TreeTable filterCategoryTree = new TreeTable(null, new CategoryContainer()); 
     
     private CheckBox includeWithoutCategory;
 
@@ -208,8 +207,8 @@ public class ReportView extends VerticalLayout implements View {
 
         HorizontalLayout categoryGroupOperation = new HorizontalLayout();
         categoryGroupOperation.setSpacing(true);
-        categoryGroupOperation.addComponent(new Button("All", event -> filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i))));
-        categoryGroupOperation.addComponent(new Button("None", event -> filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.unselect(i))));
+        categoryGroupOperation.addComponent(new Button("All", event -> filterCategoryTree.getItemIds().stream().forEach(i -> filterCategoryTree.select(i))));
+        categoryGroupOperation.addComponent(new Button("None", event -> filterCategoryTree.getItemIds().stream().forEach(i -> filterCategoryTree.unselect(i))));
         categoriesSelectionLayout.addComponent(categoryGroupOperation);
         
         filterCategoryTree.setVisibleColumns(Category.PROPERTY_NAME);
@@ -242,7 +241,7 @@ public class ReportView extends VerticalLayout implements View {
                 Collection<Category> selected = (Collection<Category>) filterCategoryTree.getValue();
                 String result = "None";
                 if (!selected.isEmpty()) {
-                    if (selected.size()==filterCategoryContainer.getItemIds().size()) {
+                    if (selected.size()==filterCategoryTree.getItemIds().size()) {
                         result = "All";
                     } else {
                         result = selected.stream().map(Category::getName).collect(Collectors.joining(", "));
@@ -564,16 +563,14 @@ public class ReportView extends VerticalLayout implements View {
 
         
         Collection<Account> selectedAccountsForReport = (Collection<Account>)filterAccounts.getValue();
-        if (selectedAccountsForReport.isEmpty()) {
-            return;
-        }
-        
         Collection<Category> selectedCategoriesForReport = (Collection<Category>)filterCategoryTree.getValue();
-        if (selectedCategoriesForReport.isEmpty() && !includeWithoutCategory.getValue()) {
+        if (selectedAccountsForReport.isEmpty() || (selectedCategoriesForReport.isEmpty() && !includeWithoutCategory.getValue())) {
+            reportTabs.setVisible(false);
             return;
         }
+        reportTabs.setVisible(true);
         
-        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getUserAccount(), fromDate, toDate, temporalUnit, selectedAccountsForReport, true, filterCategoriesType.getValue()==Boolean.TRUE, selectedCategoriesForReport, includeWithoutCategory.getValue());
+        List<CategoryReport> reports = reportingService.getCategoryReport(userIdentity.getProfile(), fromDate, toDate, temporalUnit, selectedAccountsForReport, true, filterCategoriesType.getValue()==Boolean.TRUE, selectedCategoriesForReport, includeWithoutCategory.getValue());
         Collections.sort(reports, (c1, c2) -> {
             if (c1.getCategory() == null) {
                 return c2.getCategory() == null ? 0 : 1;
@@ -626,18 +623,19 @@ public class ReportView extends VerticalLayout implements View {
     @Override
     public void enter(ViewChangeEvent event) {
         //refreshAccounts
-        List<Account> accounts = accountService.list(userIdentity.getUserAccount());
+        List<Account> accounts = accountService.list(userIdentity.getProfile());
         if (filterAccounts.getContainerDataSource().size()!=accounts.size() || accounts.stream().anyMatch(i -> filterAccounts.getItem(i)==null)) {
             filterAccounts.setContainerDataSource(new BeanItemContainer<>(Account.class, accounts));
             filterAccounts.getItemIds().stream().forEach(i -> filterAccounts.select(i));            
         }
 
-        List<Category> listCategories = categoryService.listCategories(userIdentity.getUserAccount());
-        if (filterCategoryContainer.size()!=listCategories.size() || listCategories.stream().anyMatch(i -> filterCategoryContainer.getItem(i)==null)) {
-            filterCategoryContainer.removeAllItems();
+        List<Category> listCategories = categoryService.listCategories(userIdentity.getProfile());
+        if (filterCategoryTree.getContainerDataSource().size()!=listCategories.size() || listCategories.stream().anyMatch(i -> filterCategoryTree.getItem(i)==null)) {
+            CategoryContainer filterCategoryContainer = new CategoryContainer();
             filterCategoryContainer.addAll(listCategories);
-            filterCategoryContainer.getItemIds().stream().forEach(i -> filterCategoryTree.select(i));
-            filterCategoryContainer.getItemIds().forEach(it -> filterCategoryTree.setCollapsed(it, false));
+            filterCategoryTree.setContainerDataSource(filterCategoryContainer);
+            listCategories.stream().forEach(i -> filterCategoryTree.select(i));
+            listCategories.forEach(it -> filterCategoryTree.setCollapsed(it, false));
         }
         
         filterChanged();

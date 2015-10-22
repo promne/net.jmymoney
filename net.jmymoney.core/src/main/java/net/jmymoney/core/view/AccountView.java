@@ -91,7 +91,7 @@ public class AccountView extends VerticalLayout implements View {
         newCategoryDialog.setDialogResultListener((closeType, resultValue) -> {
             if (DialogResultType.OK.equals(closeType)) {
                 Account account = new Account();
-                account.setUserAccount(userIdentity.getUserAccount());
+                account.setProfile(userIdentity.getProfile());
                 account.setName((String) resultValue);
 
                 accountService.create(account);
@@ -144,7 +144,7 @@ public class AccountView extends VerticalLayout implements View {
 
     private void refreshAccounts() {
         accountTable.removeAllItems();
-        List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getUserAccount());
+        List<AccountMetadata> accountMetadatas = accountService.listAccountMetadatas(userIdentity.getProfile());
 
         accountMetadatas.forEach(metadata -> {
             Item newItem = accountTable.addItem(metadata.getAccount().getId());

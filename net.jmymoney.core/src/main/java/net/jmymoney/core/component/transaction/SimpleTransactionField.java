@@ -208,9 +208,9 @@ public class SimpleTransactionField extends CustomField<Transaction> {
 
     private List<SplitPartner> listSplitPartners() {
         List<SplitPartner> result = new ArrayList<>();
-        result.addAll(splitPartnerService.listPayees(userIdentity.getUserAccount()));
+        result.addAll(splitPartnerService.listPayees(userIdentity.getProfile()));
         if (getInternalValue() != null) {
-            List<Account> accounts = accountService.list(userIdentity.getUserAccount());
+            List<Account> accounts = accountService.list(userIdentity.getProfile());
             if (getInternalValue().getAccount() != null) {
                 Long actualAccountId = getInternalValue().getAccount().getId();
                 accounts = accounts.stream().filter(account -> !account.getId().equals(actualAccountId)).collect(Collectors.toList());
@@ -225,7 +225,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
         BeanContainer<Long, Category> categoryContainer = new BeanContainer<>(Category.class);
         categoryContainer.setBeanIdProperty(Category.PROPERTY_ID);
         
-        for (Category category : categoryService.listCategories(userIdentity.getUserAccount())) {
+        for (Category category : categoryService.listCategories(userIdentity.getProfile())) {
             BeanItem<Category> item = categoryContainer.addBean(category);
             String content = CategoryCaptionGenerator.getCaption(category);
             item.addItemProperty(PROPERTY_CATEGORY_DISPLAY_NAME, new ObjectProperty<String>(content));            
@@ -335,7 +335,7 @@ public class SimpleTransactionField extends CustomField<Transaction> {
                 if (DialogResultType.OK.equals(dialogResultType)) {
                     Payee newPartner = new Payee();
                     newPartner.setName(newItemCaption);
-                    newPartner.setUserAccount(userIdentity.getUserAccount());
+                    newPartner.setProfile(userIdentity.getProfile());
                     splitPartnerService.create(newPartner);
                     refreshPartners();
                     // TODO I know, it's necessary to update all

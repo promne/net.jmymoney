@@ -6,18 +6,12 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.validation.constraints.NotNull;
 
-/**
- * @author Georgeh
- *
- */
 @Entity
-@Table(name = "categories")
-public class Category {
+@Table(name = "profiles")
+public class Profile {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,21 +24,11 @@ public class Category {
     public static final String PROPERTY_NAME = "name";
 
     @ManyToOne
-    @JoinColumn(name = "parent_id")
-    private Category parent;
-    public static final String PROPERTY_PARENT = "parent";
+    @JoinColumn(name = "owner_user_account_id")
+    private UserAccount ownerUserAccount;
+    public static final String PROPERTY_USER_ACCOUNT = "ownerUserAccount";
 
-    @ManyToOne
-    @NotNull
-    @JoinColumn(name = "profile_id")
-    Profile profile;
-    public static final String PROPERTY_PROFILE = "profile";
-
-    @Lob
-    @Column(name = "description")
-    private String description;
-
-    public Category() {
+    public Profile() {
         super();
     }
 
@@ -64,33 +48,12 @@ public class Category {
         this.name = name;
     }
 
-    public String getDescription() {
-        return description;
+    public UserAccount getOwnerUserAccount() {
+        return ownerUserAccount;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Category getParent() {
-        return parent;
-    }
-
-    public void setParent(Category parent) {
-        this.parent = parent;
-    }
-
-    public Profile getProfile() {
-        return profile;
-    }
-
-    public void setProfile(Profile profile) {
-        this.profile = profile;
-    }
-
-    @Override
-    public String toString() {
-        return id + "-" + name;
+    public void setOwnerUserAccount(UserAccount ownerUserAccount) {
+        this.ownerUserAccount = ownerUserAccount;
     }
 
     @Override
@@ -112,7 +75,7 @@ public class Category {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        Category other = (Category) obj;
+        Profile other = (Profile) obj;
         if (id == null) {
             if (other.id != null) {
                 return false;

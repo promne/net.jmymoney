@@ -31,6 +31,7 @@ public abstract class SplitPartner {
 	@ManyToOne
 	@JoinColumn(name="parent_id")
 	private SplitPartner parent;
+	public static final String PROPERTY_PARENT = "parent";
 	
 	@Lob
 	@Column(name="description")
@@ -39,9 +40,9 @@ public abstract class SplitPartner {
 	
 	@ManyToOne
 	@NotNull
-	@JoinColumn(name="user_account_id")
-	UserAccount userAccount;
-	public static final String PROPERTY_USER_ACCOUNT = "userAccount";
+	@JoinColumn(name="profile_id")
+	Profile profile;
+	public static final String PROPERTY_PROFILE = "profile";
 	
 	public SplitPartner() {
 		super();
@@ -79,12 +80,12 @@ public abstract class SplitPartner {
 		this.description = description;
 	}
 
-	public UserAccount getUserAccount() {
-		return userAccount;
+	public Profile getProfile() {
+		return profile;
 	}
 
-	public void setUserAccount(UserAccount userAccount) {
-		this.userAccount = userAccount;
+	public void setProfile(Profile profile) {
+		this.profile = profile;
 	}
 
     @Override

@@ -199,7 +199,7 @@ public class CategoryView extends VerticalLayout implements View {
             if (DialogResultType.OK.equals(closeType)) {
                 Category category = new Category();
                 category.setName((String) resultValue);
-                category.setUserAccount(userIdentity.getUserAccount());
+                category.setProfile(userIdentity.getProfile());
                 categoryService.create(category);
                 refreshCategories();
             }
@@ -233,7 +233,7 @@ public class CategoryView extends VerticalLayout implements View {
     
     private void refreshCategories() {
         categoryContainer.removeAllItems();
-        List<Category> listCategories = categoryService.listCategories(userIdentity.getUserAccount());
+        List<Category> listCategories = categoryService.listCategories(userIdentity.getProfile());
         categoryContainer.addAll(listCategories);
         categoryContainer.getItemIds().forEach(it -> categoryTree.setCollapsed(it, false));
 

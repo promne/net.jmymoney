@@ -23,9 +23,9 @@ import org.slf4j.Logger;
 
 import net.jmymoney.core.domain.AccountMetadata;
 import net.jmymoney.core.entity.Account;
+import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
-import net.jmymoney.core.entity.UserAccount;
 
 @Stateless
 public class AccountService {
@@ -36,45 +36,45 @@ public class AccountService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public List<Account> list(UserAccount userAccount) {
+    public List<Account> list(Profile profile) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Account> cq = cb.createQuery(Account.class);
         Root<Account> root = cq.from(Account.class);
-        cq.where(cb.equal(root.get("userAccount"), userAccount));
+        cq.where(cb.equal(root.get(Account.PROPERTY_PROFILE), profile));
         return entityManager.createQuery(cq).getResultList();
     }
 
-    public List<AccountMetadata> listAccountMetadatas(UserAccount userAccount) {
+    public List<AccountMetadata> listAccountMetadatas(Profile profile) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<AccountMetadata> cq = cb.createQuery(AccountMetadata.class);
         Root<Account> account = cq.from(Account.class);
 
         Subquery<BigDecimal> sq = cq.subquery(BigDecimal.class);
         Root<Transaction> transaction = sq.from(Transaction.class);
-        Join<Transaction, TransactionSplit> joinSplits = transaction.join("splits");
-        sq.select(cb.sum(joinSplits.get("amount")));
-        sq.where(cb.equal(account, transaction.get("account")));
+        Join<Transaction, TransactionSplit> joinSplits = transaction.join(Transaction.PROPERTY_SPLITS);
+        sq.select(cb.sum(joinSplits.get(TransactionSplit.PROPERTY_AMOUNT)));
+        sq.where(cb.equal(account, transaction.get(Transaction.PROPERTY_ACCOUNT)));
 
         cq.select(cb.construct(AccountMetadata.class, account, sq.getSelection()));
-        cq.where(cb.equal(account.get("userAccount"), userAccount));
+        cq.where(cb.equal(account.get(Account.PROPERTY_PROFILE), profile));
         cq.groupBy(account);
 
         return entityManager.createQuery(cq).getResultList();
     }
 
-    public List<AccountMetadata> listAccountMetadatas(UserAccount userAccount, Date date) {
+    public List<AccountMetadata> listAccountMetadatas(Profile profile, Date date) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<AccountMetadata> cq = cb.createQuery(AccountMetadata.class);
         Root<Account> account = cq.from(Account.class);
         
         Subquery<BigDecimal> sq = cq.subquery(BigDecimal.class);
         Root<Transaction> transaction = sq.from(Transaction.class);
-        Join<Transaction, TransactionSplit> joinSplits = transaction.join("splits");
-        sq.select(cb.sum(joinSplits.get("amount")));
-        sq.where(cb.and(cb.equal(account, transaction.get("account")), cb.lessThanOrEqualTo(transaction.get("timestamp"), date)));
+        Join<Transaction, TransactionSplit> joinSplits = transaction.join(Transaction.PROPERTY_SPLITS);
+        sq.select(cb.sum(joinSplits.get(TransactionSplit.PROPERTY_AMOUNT)));
+        sq.where(cb.and(cb.equal(account, transaction.get(Transaction.PROPERTY_ACCOUNT)), cb.lessThanOrEqualTo(transaction.get(Transaction.PROPERTY_TIMESTAMP), date)));
         
         cq.select(cb.construct(AccountMetadata.class, account, sq.getSelection()));
-        cq.where(cb.equal(account.get("userAccount"), userAccount));
+        cq.where(cb.equal(account.get(Account.PROPERTY_PROFILE), profile));
         cq.groupBy(account);
         
         return entityManager.createQuery(cq).getResultList();
@@ -102,8 +102,8 @@ public class AccountService {
             CriteriaBuilder cb = entityManager.getCriteriaBuilder();
             CriteriaQuery<Long> cq = cb.createQuery(Long.class);
             Root<Account> root = cq.from(Account.class);
-            cq.select(root.get("id"));
-            cq.where(cb.equal(root.get("parent").get("id"), currentAccountId));
+            cq.select(root.get(Account.PROPERTY_ID));
+            cq.where(cb.equal(root.get(Account.PROPERTY_PARENT).get(Account.PROPERTY_ID), currentAccountId));
 
             List<Long> currentChilds = entityManager.createQuery(cq).getResultList();
             for (Long foundChildId : currentChilds) {
@@ -117,8 +117,8 @@ public class AccountService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Transaction> cqRoot = cq.from(Transaction.class);
-        cq.where(cqRoot.get("account").get("id").in(accountIds));
-        cq.select(cqRoot.get("id"));
+        cq.where(cqRoot.get(Transaction.PROPERTY_ACCOUNT).get(Account.PROPERTY_ID).in(accountIds));
+        cq.select(cqRoot.get(Transaction.PROPERTY_ID));
         boolean canDelete = entityManager.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
 
         log.debug("Deleting account {} : {}", accountId, canDelete);
@@ -129,7 +129,7 @@ public class AccountService {
                 Long deleteAccountId = accountIds.pollLast();
                 CriteriaDelete<Account> cdc = cb.createCriteriaDelete(Account.class);
                 Root<Account> cdcRoot = cdc.from(Account.class);
-                cdc.where(cb.equal(cdcRoot.get("id"), deleteAccountId));
+                cdc.where(cb.equal(cdcRoot.get(Account.PROPERTY_ID), deleteAccountId));
                 entityManager.createQuery(cdc).executeUpdate();
             }
         }

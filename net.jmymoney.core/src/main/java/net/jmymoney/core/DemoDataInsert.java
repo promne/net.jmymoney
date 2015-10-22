@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import net.jmymoney.core.entity.Account;
 import net.jmymoney.core.entity.Category;
 import net.jmymoney.core.entity.Payee;
+import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.Transaction;
 import net.jmymoney.core.entity.TransactionSplit;
 import net.jmymoney.core.entity.UserAccount;
@@ -39,41 +40,55 @@ public class DemoDataInsert {
 			UserAccount userAccount = new UserAccount();
 			userAccount.setUsername(username);
 			userAccount.setPasswordHash(BCrypt.hashpw(username, BCrypt.gensalt()));
+
+			Profile profile = new Profile();
+			profile.setName(username);
+			profile.setOwnerUserAccount(userAccount);
+			userAccount.getProfiles().add(profile);
+			em.persist(profile);
+
+			profile = new Profile();
+			profile.setName(username + "2");
+			profile.setOwnerUserAccount(userAccount);
+			userAccount.getProfiles().add(profile);
+			em.persist(profile);
+			
 			em.persist(userAccount);
 			
-			simpleAccount(userAccount);
-//			complexAccount(userAccount);
+			
+			simpleAccount(profile);
+//			complexAccount(profile);
 		}
 	}
 
-	public void simpleAccount(UserAccount userAccount) {
+	public void simpleAccount(Profile profile) {
 		Category category = new Category();
-		category.setUserAccount(userAccount);
+		category.setProfile(profile);
 		category.setName("Category 1");
 		em.persist(category);
 
 		Category category2 = new Category();
-		category2.setUserAccount(userAccount);
+		category2.setProfile(profile);
 		category2.setName("Category 2");
 		em.persist(category2);
 		
 		Account account = new Account();
 		account.setName("aaaa");
-		account.setUserAccount(userAccount);
+		account.setProfile(profile);
 		em.persist(account);
 		
 		Account account2 = new Account();
 		account2.setName("ssss");
-		account2.setUserAccount(userAccount);
+		account2.setProfile(profile);
 		em.persist(account2);
 		
 		Account account3 = new Account();
 		account3.setName("dddd");
-		account3.setUserAccount(userAccount);
+		account3.setProfile(profile);
 		em.persist(account3);
 
 		Payee ts = new Payee();
-		ts.setUserAccount(userAccount);
+		ts.setProfile(profile);
 		ts.setName("unknown");
 		em.persist(ts);
 		
@@ -81,12 +96,12 @@ public class DemoDataInsert {
 	
 	
 	
-	public void complexAccount(UserAccount userAccount) {
+	public void complexAccount(Profile profile) {
 		long runningDate;
 		List<Category> categoryList = new ArrayList<>();
 		for (int i=0; i<15; i++) {
 			Category category = new Category();
-			category.setUserAccount(userAccount);
+			category.setProfile(profile);
 			category.setName("Category " + i);
 			em.persist(category);
 			categoryList.add(category);
@@ -104,7 +119,7 @@ public class DemoDataInsert {
 		List<Payee> transactionSubjectList = new ArrayList<>();
 		for (int i=0; i<5; i++) {
 			Payee ts = new Payee();
-			ts.setUserAccount(userAccount);
+			ts.setProfile(profile);
 			ts.setName("Subject "+i);
 			em.persist(ts);
 			transactionSubjectList.add(ts);
@@ -114,7 +129,7 @@ public class DemoDataInsert {
 		for (int a=1; a<2; a++) {
 			Account account = new Account();
 			account.setName("test " + a);
-			account.setUserAccount(userAccount);
+			account.setProfile(profile);
 			em.persist(account);
 			
 			for (int i=1; i<a*10; i++) {

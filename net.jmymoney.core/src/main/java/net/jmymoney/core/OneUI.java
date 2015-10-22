@@ -26,14 +26,19 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 
+import java.util.List;
+import java.util.function.Supplier;
+
 import javax.inject.Inject;
 
 import net.jmymoney.core.component.LoginWindow;
 import net.jmymoney.core.component.LoginWindow.LoginResultType;
 import net.jmymoney.core.component.NavigationButton;
+import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.UserAccount;
 import net.jmymoney.core.i18n.I18nResourceConstant;
 import net.jmymoney.core.i18n.MessagesResourceBundle;
+import net.jmymoney.core.service.ProfileService;
 import net.jmymoney.core.service.UserAccountService;
 import net.jmymoney.core.theme.ThemeResourceConstatns;
 import net.jmymoney.core.theme.ThemeStyles;
@@ -60,6 +65,9 @@ public class OneUI extends UI {
 
     @Inject
     private UserAccountService userAccountService;
+
+    @Inject
+    private ProfileService profileService;
 
     @Inject
     private MessagesResourceBundle messagesResourceBundle;
@@ -101,6 +109,9 @@ public class OneUI extends UI {
                 loginWindow.focus();
             } else {
                 userIdentity.setUserAccount(userAccount);
+                final UserAccount finalUserAccount = userAccount;
+                List<Profile> userAccountProfiles = profileService.list(finalUserAccount);
+                userIdentity.setProfile(userAccountProfiles.stream().filter(p -> p.getOwnerUserAccount().equals(finalUserAccount)).findFirst().get());
                 loadPage();
                 if (Page.getCurrent().getUriFragment() != null) {
                     navigator.navigateTo(Page.getCurrent().getUriFragment());
@@ -173,15 +184,36 @@ public class OneUI extends UI {
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_PARTNERS), FontAwesome.USERS, PartnerView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_REPORTS), FontAwesome.BAR_CHART_O, ReportView.NAME));        
         
+        final Supplier<String> usernameProfileSuplier = () -> String.format("%s [%s]", userIdentity.getUserAccount().getUsername(), userIdentity.getProfile().getName());  
+        
         final MenuBar settings = new MenuBar();
         settings.addStyleName(ThemeStyles.USER_MENU);
-        final MenuItem settingsItem = settings.addItem(userIdentity.getUserAccount().getUsername(), ThemeResourceConstatns.PROFILE_PIC_300, null);
-        settingsItem.addItem("Edit Profile", c -> {
-            navigator.navigateTo(UserAccountView.NAME);
-        }).setIcon(FontAwesome.EDIT);
+        final MenuItem settingsItem = settings.addItem(usernameProfileSuplier.get(), ThemeResourceConstatns.PROFILE_PIC_300, null);
+        
+        final MenuItem profilesMenuItem = settingsItem.addItem("Profiles", null);
+        profileService.list(userIdentity.getUserAccount()).stream().forEach(p -> {            
+            MenuItem singleProfileMenuItem = profilesMenuItem.addItem(p.getName(),null);
+            singleProfileMenuItem.setCheckable(true);
+            if (userIdentity.getProfile().equals(p)) {
+                singleProfileMenuItem.setChecked(true);
+            }
+            singleProfileMenuItem.setCommand(mc -> {                
+                userIdentity.setProfile(p);
+                profilesMenuItem.getChildren().stream().filter(MenuItem::isCheckable).forEach(mi -> mi.setChecked(false));
+                singleProfileMenuItem.setChecked(true);
+                settingsItem.setText(usernameProfileSuplier.get());
+                navigator.navigateTo(navigator.getState());
+            });
+        });            
+        profilesMenuItem.addSeparator();
+        profilesMenuItem.addItem("Manage profiles", null);
+        
+        
+        
+        settingsItem.addItem("Edit user account", FontAwesome.EDIT, c -> navigator.navigateTo(UserAccountView.NAME));
 //        settingsItem.addItem("Preferences", null);
         settingsItem.addSeparator();
-        settingsItem.addItem("Sign Out", menuItem -> {
+        settingsItem.addItem("Sign Out", FontAwesome.BAN, menuItem -> {
             for (UI ui : VaadinSession.getCurrent().getUIs()) {
                 ui.access(() -> {
                     ui.getPage().setLocation(UITools.getStartLocation());
@@ -190,7 +222,7 @@ public class OneUI extends UI {
             close();
             getSession().close();
             getSession().getSession().invalidate();
-        }).setIcon(FontAwesome.BAN);
+        });
         menuContent.addComponent(settings);
         
         navigator.addViewChangeListener(new ViewChangeListener() {

@@ -28,8 +28,8 @@ public class TransactionService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Transaction> cq = cb.createQuery(Transaction.class);
         Root<Transaction> root = cq.from(Transaction.class);
-        cq.where(cb.equal(root.get("account"), account));
-        cq.orderBy(cb.asc(root.get("timestamp")));
+        cq.where(cb.equal(root.get(Transaction.PROPERTY_ACCOUNT), account));
+        cq.orderBy(cb.asc(root.get(Transaction.PROPERTY_TIMESTAMP)));
 
         return entityManager.createQuery(cq).getResultList();
     }
@@ -107,7 +107,7 @@ public class TransactionService {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Transaction> cq = cb.createQuery(Transaction.class);
         Root<Transaction> tr = cq.from(Transaction.class);
-        tr.fetch("splits");
+        tr.fetch(Transaction.PROPERTY_SPLITS);
         cq.where(cb.equal(tr, transaction));
 
         return entityManager.createQuery(cq).getSingleResult().getSplits();
