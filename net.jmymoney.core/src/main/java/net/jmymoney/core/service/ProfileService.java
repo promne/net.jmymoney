@@ -1,6 +1,5 @@
 package net.jmymoney.core.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ejb.Stateless;
@@ -24,11 +23,6 @@ public class ProfileService {
         entityManager.persist(profile);
     }
     
-    public List<Profile> list(UserAccount userAccount) {
-        UserAccount find = entityManager.find(UserAccount.class, userAccount.getId());
-        return new ArrayList<>(find.getProfiles());
-    }
-
     public boolean add(UserAccount userAccount, Profile profile) {
         UserAccount latestAccount = entityManager.find(UserAccount.class, userAccount.getId());
         userAccount.setProfiles(latestAccount.getProfiles());

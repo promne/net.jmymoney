@@ -26,7 +26,6 @@ import com.vaadin.ui.Notification.Type;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 import javax.inject.Inject;
@@ -34,7 +33,6 @@ import javax.inject.Inject;
 import net.jmymoney.core.component.LoginWindow;
 import net.jmymoney.core.component.LoginWindow.LoginResultType;
 import net.jmymoney.core.component.NavigationButton;
-import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.UserAccount;
 import net.jmymoney.core.i18n.I18nResourceConstant;
 import net.jmymoney.core.i18n.MessagesResourceBundle;
@@ -117,8 +115,7 @@ public class OneUI extends UI {
             } else {
                 userIdentity.setUserAccount(userAccount);
                 final UserAccount finalUserAccount = userAccount;
-                List<Profile> userAccountProfiles = profileService.list(finalUserAccount);
-                userIdentity.setProfile(userAccountProfiles.stream().filter(p -> p.getOwnerUserAccount().equals(finalUserAccount)).findFirst().get());
+                userIdentity.setProfile(userAccount.getProfiles().stream().filter(p -> p.getOwnerUserAccount().equals(finalUserAccount)).findFirst().get());
                 loadPage();
                 if (Page.getCurrent().getUriFragment() != null) {
                     navigator.navigateTo(Page.getCurrent().getUriFragment());
@@ -191,7 +188,7 @@ public class OneUI extends UI {
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_PARTNERS), FontAwesome.USERS, PartnerView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_REPORTS), FontAwesome.BAR_CHART_O, ReportView.NAME));        
         
-        usernameProfileSuplier = () -> String.format("%s [%s]", userIdentity.getUserAccount().getUsername(), userIdentity.getProfile().getName());  
+        usernameProfileSuplier = () -> userIdentity.getUserAccount().getProfiles().size()>1 ? String.format("%s [%s]", userIdentity.getUserAccount().getUsername(), userIdentity.getProfile().getName()) : userIdentity.getUserAccount().getUsername();  
         
         final MenuBar settings = new MenuBar();
         settings.addStyleName(ThemeStyles.USER_MENU);
@@ -247,7 +244,7 @@ public class OneUI extends UI {
 
     public void refreshData() {
         profilesMenuItem.removeChildren();
-        profileService.list(userIdentity.getUserAccount()).stream().forEach(p -> {            
+        userIdentity.getUserAccount().getProfiles().stream().forEach(p -> {            
             MenuItem singleProfileMenuItem = profilesMenuItem.addItem(p.getName(),null);
             singleProfileMenuItem.setCheckable(true);
             if (userIdentity.getProfile().equals(p)) {
@@ -263,7 +260,7 @@ public class OneUI extends UI {
         });            
         profilesMenuItem.addSeparator();
         profilesMenuItem.addItem("Manage profiles", c -> navigator.navigateTo(ProfilesView.NAME));
-       
+        settingsMenuItem.setText(usernameProfileSuplier.get());
     }
  
     public static OneUI getCurrent() {

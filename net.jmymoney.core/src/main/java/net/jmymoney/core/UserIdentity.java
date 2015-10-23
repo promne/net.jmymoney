@@ -3,13 +3,18 @@ package net.jmymoney.core;
 import java.io.Serializable;
 
 import javax.enterprise.context.SessionScoped;
+import javax.inject.Inject;
 
 import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.UserAccount;
+import net.jmymoney.core.service.UserAccountService;
 
 @SessionScoped
 public class UserIdentity implements Serializable {
 
+    @Inject
+    private UserAccountService userAccountService;
+    
     private UserAccount userAccount;
 
     private Profile profile;
@@ -34,4 +39,10 @@ public class UserIdentity implements Serializable {
         this.profile = profile;
     }
 
+    public void refreshUserAccount() {
+        if (userAccount != null) {
+            userAccount = userAccountService.find(userAccount.getId());
+        }
+    }
+    
 }

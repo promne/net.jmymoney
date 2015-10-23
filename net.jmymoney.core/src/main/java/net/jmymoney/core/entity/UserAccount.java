@@ -5,6 +5,7 @@ import java.util.Set;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -34,7 +35,7 @@ public class UserAccount {
     private String passwordHash;
     public static final String PROPERTY_PASSWORD_HASH = "passwordHash";
 
-    @ManyToMany
+    @ManyToMany(fetch=FetchType.EAGER)
     @JoinTable(name = "user_account_profile", joinColumns={@JoinColumn(name="user_account_id", referencedColumnName=PROPERTY_ID)}, inverseJoinColumns={@JoinColumn(name="profile_id", referencedColumnName=Profile.PROPERTY_ID)})
     private Set<Profile> profiles = new HashSet<>();
     public static final String PROPERTY_PROFILES = "profiles";

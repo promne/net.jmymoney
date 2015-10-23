@@ -36,6 +36,10 @@ public class UserAccountService {
         return result;
     }
     
+    public UserAccount find(Long id) {
+        return entityManager.find(UserAccount.class, id);
+    }
+    
     public boolean passwordMatches(String password, UserAccount userAccount) {
         return BCrypt.checkpw(password, userAccount.getPasswordHash());
     }

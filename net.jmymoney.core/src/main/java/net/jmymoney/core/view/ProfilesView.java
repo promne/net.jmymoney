@@ -109,7 +109,7 @@ public class ProfilesView extends VerticalLayout implements View {
         });
         
         
-        profilesGrid = new Grid(wrapperContainer);
+        profilesGrid = new Grid("Profiles", wrapperContainer);
         profilesGrid.removeAllColumns();
         profilesGrid.addColumn(Profile.PROPERTY_NAME).setExpandRatio(1);
         profilesGrid.addColumn(PropertyResolver.chainPropertyName(Profile.PROPERTY_USER_ACCOUNT, UserAccount.PROPERTY_USERNAME)).setHeaderCaption("Owner").setExpandRatio(1);
@@ -170,7 +170,8 @@ public class ProfilesView extends VerticalLayout implements View {
     
     private void refreshProfiles() {
         profileContainer.removeAllItems();
-        profileContainer.addAll(profileService.list(userIdentity.getUserAccount()));
+        userIdentity.refreshUserAccount();
+        profileContainer.addAll(userIdentity.getUserAccount().getProfiles());
         invitationContainer.removeAllItems();
         invitationContainer.addAll(invitationService.listInvitations(userIdentity.getUserAccount()));
         profilesGrid.recalculateColumnWidths();        
