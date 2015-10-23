@@ -4,7 +4,7 @@ import com.vaadin.ui.Component;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.Window;
 
-public abstract class AbstractDialog extends Window {
+public class AbstractDialog extends Window {
 
 	public AbstractDialog() {
 		this("", null);

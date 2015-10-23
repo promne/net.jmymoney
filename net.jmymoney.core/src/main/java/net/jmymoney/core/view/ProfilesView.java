@@ -5,15 +5,23 @@ import com.vaadin.data.Item;
 import com.vaadin.data.util.BeanItemContainer;
 import com.vaadin.data.util.GeneratedPropertyContainer;
 import com.vaadin.data.util.PropertyValueGenerator;
+import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.Grid;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Notification.Type;
+import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Window;
 import com.vaadin.ui.renderers.ButtonRenderer;
 import com.vaadin.ui.renderers.ClickableRenderer.RendererClickEvent;
+import com.vaadin.ui.themes.Runo;
 
 import java.util.Date;
 import java.util.List;
@@ -25,6 +33,7 @@ import javax.inject.Inject;
 
 import net.jmymoney.core.OneUI;
 import net.jmymoney.core.UserIdentity;
+import net.jmymoney.core.component.AbstractDialog;
 import net.jmymoney.core.entity.InvitationProfile;
 import net.jmymoney.core.entity.Profile;
 import net.jmymoney.core.entity.UserAccount;
@@ -37,7 +46,7 @@ public class ProfilesView extends VerticalLayout implements View {
 
     public static final String NAME = "ProfilesView";
 
-    private static final String PROPERTY_INVITATION = "invitationLink";
+    private static final String PROPERTY_INVITATION = "invitationExpiration";
     private static final String PROPERTY_INVITE = "invite";
     private static final String PROPERTY_SHARED = "sharedWith";
     
@@ -77,7 +86,7 @@ public class ProfilesView extends VerticalLayout implements View {
             @Override
             public String getValue(Item item, Object itemId, Object propertyId) {
                 Profile profile = (Profile) itemId;
-                return invitationContainer.getItemIds().stream().filter(p -> p.getProfile().equals(profile)).map(p -> getInvitationUrl(p) + " expires " + p.getExpiration()).collect(Collectors.joining(" , "));
+                return invitationContainer.getItemIds().stream().filter(p -> p.getProfile().equals(profile)).map(p -> "expires " + p.getExpiration()).findFirst().orElse("No invitation");
             }
 
             @Override
@@ -118,19 +127,45 @@ public class ProfilesView extends VerticalLayout implements View {
     private void invite(RendererClickEvent rendererClickEvent) {
         Profile profile = (Profile) rendererClickEvent.getItemId();
         
-        if (invitationContainer.getItemIds().stream().anyMatch(p -> p.getProfile().equals(profile))) {
-            Notification.show("Invitation link created", Type.WARNING_MESSAGE);
+        if (!profile.getOwnerUserAccount().equals(userIdentity.getUserAccount())) {
+            Notification.show("Unable to create an invitation for a profile you don't own.", Type.ERROR_MESSAGE);
             return;
         }
         
-        InvitationProfile invitation = new InvitationProfile();
-        invitation.setExpiration(new Date(new Date().getTime() + 48*3600*1000));
-        invitation.setProfile(profile);
-        invitationService.create(invitation);
+        Optional<InvitationProfile> existingInvitation = invitationContainer.getItemIds().stream().filter(p -> p.getProfile().equals(profile)).findAny();
         
-        Notification.show("Invitation link created");
+        InvitationProfile invitation;
+        if (existingInvitation.isPresent()) {
+            invitation = existingInvitation.get();
+        } else {
+            invitation = new InvitationProfile();
+            invitation.setExpiration(new Date(new Date().getTime() + 48*3600*1000));
+            invitation.setProfile(profile);
+            invitationService.create(invitation);
+            refreshProfiles();
+        }
         
-        refreshProfiles();
+        // show dialog
+        Window inviteDialog = new AbstractDialog("Profile invitation link");
+        VerticalLayout layout = new VerticalLayout();
+        layout.setMargin(true);
+        layout.setSpacing(true);
+        
+        layout.addComponent(new Label("Copy following URL and send it to the person you want to share the profile with", ContentMode.HTML));
+        TextField valueTextField = new TextField(null, getInvitationUrl(invitation));
+        valueTextField.setWidth(100, Unit.PERCENTAGE);
+        layout.addComponent(valueTextField);
+        
+        Button closeButton = new Button("Close", event -> inviteDialog.close());
+        closeButton.setClickShortcut(KeyCode.ENTER);
+        closeButton.addStyleName(Runo.BUTTON_DEFAULT);
+        
+        layout.addComponent(closeButton);
+        layout.setComponentAlignment(closeButton, Alignment.MIDDLE_CENTER);
+        inviteDialog.setContent(layout);
+        UI.getCurrent().addWindow(inviteDialog);
+        valueTextField.focus();
+        valueTextField.selectAll();
     }
     
     private void refreshProfiles() {
@@ -138,8 +173,7 @@ public class ProfilesView extends VerticalLayout implements View {
         profileContainer.addAll(profileService.list(userIdentity.getUserAccount()));
         invitationContainer.removeAllItems();
         invitationContainer.addAll(invitationService.listInvitations(userIdentity.getUserAccount()));
-        profilesGrid.recalculateColumnWidths();
-        
+        profilesGrid.recalculateColumnWidths();        
     }
     
     private String getInvitationUrl(InvitationProfile invitationProfile) {
@@ -155,10 +189,11 @@ public class ProfilesView extends VerticalLayout implements View {
                 Optional<InvitationProfile> find = invitationService.find(string);
                 if (find.isPresent()) {
                     if (profileService.add(userIdentity.getUserAccount(), find.get().getProfile())) {
-                        Notification.show("Linking profile " + find.get().getProfile().getName() + " was successfull");
                         OneUI.getCurrent().refreshData();
+                        Notification.show("Linking profile " + find.get().getProfile().getName() + " was successfull");
                     }
                 }
+                UI.getCurrent().getNavigator().navigateTo(NAME);
             } catch (NumberFormatException e) {
                 //nothing, go on
             }

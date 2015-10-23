@@ -3,6 +3,7 @@ package net.jmymoney.core.component;
 import com.vaadin.data.Validator.InvalidValueException;
 import com.vaadin.event.ShortcutAction.KeyCode;
 import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.GridLayout;
@@ -21,19 +22,18 @@ public class StringInputDialog extends AbstractDialog {
 		super(caption);
 		
 		VerticalLayout layout = new VerticalLayout();
-		layout.setSizeUndefined();
 		layout.setMargin(true);
 		layout.setSpacing(true);
 		
-		
 		layout.addComponent(new Label(text, ContentMode.HTML));
 		valueTextField = new TextField();
-		valueTextField.setSizeFull();
+		valueTextField.setWidth(100, Unit.PERCENTAGE);
 		valueTextField.setRequired(true);
 		layout.addComponent(valueTextField);
 
 		GridLayout buttonsLayout = new GridLayout(2, 1);
-		buttonsLayout.setSizeFull();
+		buttonsLayout.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+		buttonsLayout.setWidth(100, Unit.PERCENTAGE);
 		Button submitButton = new Button("Submit", (ClickListener) event -> {
 			try {
 				valueTextField.validate();
