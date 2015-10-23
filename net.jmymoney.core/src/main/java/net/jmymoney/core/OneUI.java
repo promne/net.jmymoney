@@ -47,6 +47,7 @@ import net.jmymoney.core.view.AccountView;
 import net.jmymoney.core.view.CategoryView;
 import net.jmymoney.core.view.DashboardView;
 import net.jmymoney.core.view.PartnerView;
+import net.jmymoney.core.view.ProfilesView;
 import net.jmymoney.core.view.ReportView;
 import net.jmymoney.core.view.TransactionView;
 import net.jmymoney.core.view.UserAccountView;
@@ -73,6 +74,12 @@ public class OneUI extends UI {
     private MessagesResourceBundle messagesResourceBundle;
     
     private Navigator navigator;
+
+    private MenuItem profilesMenuItem;
+
+    private Supplier<String> usernameProfileSuplier;
+
+    private MenuItem settingsMenuItem;
 
     @Override
     protected void init(VaadinRequest request) {
@@ -184,36 +191,18 @@ public class OneUI extends UI {
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_PARTNERS), FontAwesome.USERS, PartnerView.NAME));
         navigationItemsLayout.addComponent(new NavigationButton(messagesResourceBundle.getString(I18nResourceConstant.UNIVERSAL_REPORTS), FontAwesome.BAR_CHART_O, ReportView.NAME));        
         
-        final Supplier<String> usernameProfileSuplier = () -> String.format("%s [%s]", userIdentity.getUserAccount().getUsername(), userIdentity.getProfile().getName());  
+        usernameProfileSuplier = () -> String.format("%s [%s]", userIdentity.getUserAccount().getUsername(), userIdentity.getProfile().getName());  
         
         final MenuBar settings = new MenuBar();
         settings.addStyleName(ThemeStyles.USER_MENU);
-        final MenuItem settingsItem = settings.addItem(usernameProfileSuplier.get(), ThemeResourceConstatns.PROFILE_PIC_300, null);
+        settingsMenuItem = settings.addItem(usernameProfileSuplier.get(), ThemeResourceConstatns.PROFILE_PIC_300, null);
         
-        final MenuItem profilesMenuItem = settingsItem.addItem("Profiles", null);
-        profileService.list(userIdentity.getUserAccount()).stream().forEach(p -> {            
-            MenuItem singleProfileMenuItem = profilesMenuItem.addItem(p.getName(),null);
-            singleProfileMenuItem.setCheckable(true);
-            if (userIdentity.getProfile().equals(p)) {
-                singleProfileMenuItem.setChecked(true);
-            }
-            singleProfileMenuItem.setCommand(mc -> {                
-                userIdentity.setProfile(p);
-                profilesMenuItem.getChildren().stream().filter(MenuItem::isCheckable).forEach(mi -> mi.setChecked(false));
-                singleProfileMenuItem.setChecked(true);
-                settingsItem.setText(usernameProfileSuplier.get());
-                navigator.navigateTo(navigator.getState());
-            });
-        });            
-        profilesMenuItem.addSeparator();
-        profilesMenuItem.addItem("Manage profiles", null);
+        profilesMenuItem = settingsMenuItem.addItem("Profiles", null);
         
-        
-        
-        settingsItem.addItem("Edit user account", FontAwesome.EDIT, c -> navigator.navigateTo(UserAccountView.NAME));
-//        settingsItem.addItem("Preferences", null);
-        settingsItem.addSeparator();
-        settingsItem.addItem("Sign Out", FontAwesome.BAN, menuItem -> {
+        settingsMenuItem.addItem("Edit user account", FontAwesome.EDIT, c -> navigator.navigateTo(UserAccountView.NAME));
+//        settingsMenuItem.addItem("Preferences", null);
+        settingsMenuItem.addSeparator();
+        settingsMenuItem.addItem("Sign Out", FontAwesome.BAN, menuItem -> {
             for (UI ui : VaadinSession.getCurrent().getUIs()) {
                 ui.access(() -> {
                     ui.getPage().setLocation(UITools.getStartLocation());
@@ -250,9 +239,35 @@ public class OneUI extends UI {
                 menuContent.removeStyleName(ThemeStyles.MENU_VISIBLE);
             }
         });
+        refreshData();
         
         setContent(pageLayout);
         addStyleName(ValoTheme.UI_WITH_MENU);
     }
 
+    public void refreshData() {
+        profilesMenuItem.removeChildren();
+        profileService.list(userIdentity.getUserAccount()).stream().forEach(p -> {            
+            MenuItem singleProfileMenuItem = profilesMenuItem.addItem(p.getName(),null);
+            singleProfileMenuItem.setCheckable(true);
+            if (userIdentity.getProfile().equals(p)) {
+                singleProfileMenuItem.setChecked(true);
+            }
+            singleProfileMenuItem.setCommand(mc -> {                
+                userIdentity.setProfile(p);
+                profilesMenuItem.getChildren().stream().filter(MenuItem::isCheckable).forEach(mi -> mi.setChecked(false));
+                singleProfileMenuItem.setChecked(true);
+                settingsMenuItem.setText(usernameProfileSuplier.get());
+                navigator.navigateTo(navigator.getState());
+            });
+        });            
+        profilesMenuItem.addSeparator();
+        profilesMenuItem.addItem("Manage profiles", c -> navigator.navigateTo(ProfilesView.NAME));
+       
+    }
+ 
+    public static OneUI getCurrent() {
+        return (OneUI) UI.getCurrent();
+    }
+    
 }

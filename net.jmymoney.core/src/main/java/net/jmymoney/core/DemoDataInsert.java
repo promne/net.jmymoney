@@ -36,7 +36,7 @@ public class DemoDataInsert {
 
 	@PostConstruct
 	private void init() {
-		for (String username : new String[]{"a"}) {
+		for (String username : new String[]{"a", "s"}) {
 			UserAccount userAccount = new UserAccount();
 			userAccount.setUsername(username);
 			userAccount.setPasswordHash(BCrypt.hashpw(username, BCrypt.gensalt()));
@@ -56,7 +56,7 @@ public class DemoDataInsert {
 			em.persist(userAccount);
 			
 			
-			simpleAccount(profile);
+			simpleAccount(userAccount.getProfiles().iterator().next());
 //			complexAccount(profile);
 		}
 	}
