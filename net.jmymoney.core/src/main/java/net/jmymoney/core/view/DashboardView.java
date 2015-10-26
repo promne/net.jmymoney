@@ -79,7 +79,8 @@ public class DashboardView extends VerticalLayout implements View {
     private void refresh() {
         removeAllComponents();
         
-        Label accountsHeaderLabel = new Label("<h2>"+messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD)+" for profile " + userIdentity.getProfile().getName() + "</h2>", ContentMode.HTML);
+        String dashboardHeaderProfileInfo = userIdentity.getUserAccount().getProfiles().size()>1 ? " for profile " + userIdentity.getProfile().getName() : "";
+        Label accountsHeaderLabel = new Label("<h2>"+messagesResourceBundle.getString(I18nResourceConstant.DASHBOARD) + dashboardHeaderProfileInfo + "</h2>", ContentMode.HTML);
         addComponent(accountsHeaderLabel);
 
         VerticalLayout dashContent = new VerticalLayout();

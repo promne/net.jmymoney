@@ -211,7 +211,6 @@ public class ReportView extends VerticalLayout implements View {
         categoryGroupOperation.addComponent(new Button("None", event -> filterCategoryTree.getItemIds().stream().forEach(i -> filterCategoryTree.unselect(i))));
         categoriesSelectionLayout.addComponent(categoryGroupOperation);
         
-        filterCategoryTree.setVisibleColumns(Category.PROPERTY_NAME);
         filterCategoryTree.setSelectable(true);
         filterCategoryTree.setMultiSelect(true);
         filterCategoryTree.setMultiSelectMode(MultiSelectMode.SIMPLE);
@@ -634,6 +633,7 @@ public class ReportView extends VerticalLayout implements View {
             CategoryContainer filterCategoryContainer = new CategoryContainer();
             filterCategoryContainer.addAll(listCategories);
             filterCategoryTree.setContainerDataSource(filterCategoryContainer);
+            filterCategoryTree.setVisibleColumns(Category.PROPERTY_NAME);
             listCategories.stream().forEach(i -> filterCategoryTree.select(i));
             listCategories.forEach(it -> filterCategoryTree.setCollapsed(it, false));
         }

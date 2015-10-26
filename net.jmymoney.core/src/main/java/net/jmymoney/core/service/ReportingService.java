@@ -49,7 +49,7 @@ public class ReportingService {
     public List<CategoryReport> getCategoryReport(Profile profile, Date dateFrom, Date dateTo, TemporalUnit groupByUnit, Collection<Account> includeAccounts, boolean excludeTransfers, boolean includeSubCategories, Collection<Category> includeCategories, boolean includeWithoutCategory) {
         assert dateFrom.before(dateTo);
 
-        if (includeAccounts.isEmpty() || includeCategories.isEmpty()) {
+        if (includeAccounts.isEmpty() || (includeCategories.isEmpty() && !includeWithoutCategory)) {
             return Collections.EMPTY_LIST;
         }
         
