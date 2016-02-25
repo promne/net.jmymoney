@@ -1,9 +1,5 @@
 @import "jmm.scss";
-@import "addons.scss";
-@import "contextmenu.scss";
 
 .jmm {
-	@include addons;
-	@include contextmenu;
 	@include jmm;
 }

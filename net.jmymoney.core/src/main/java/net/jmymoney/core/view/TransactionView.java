@@ -1,5 +1,7 @@
 package net.jmymoney.core.view;
 
+import com.vaadin.addon.contextmenu.ContextMenu;
+import com.vaadin.addon.contextmenu.ContextMenu.ContextMenuOpenListener;
 import com.vaadin.cdi.CDIView;
 import com.vaadin.data.Property.ValueChangeEvent;
 import com.vaadin.data.util.BeanItemContainer;
@@ -7,12 +9,14 @@ import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
 import com.vaadin.server.Page;
 import com.vaadin.shared.ui.combobox.FilteringMode;
+import com.vaadin.shared.ui.table.TableConstants.Section;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.Table.TableContextClickEvent;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
@@ -26,13 +30,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-
-import org.vaadin.peter.contextmenu.ContextMenu;
-import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuItem;
-import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedListener;
-import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedOnTableFooterEvent;
-import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedOnTableHeaderEvent;
-import org.vaadin.peter.contextmenu.ContextMenu.ContextMenuOpenedOnTableRowEvent;
 
 import net.jmymoney.core.UserIdentity;
 import net.jmymoney.core.component.tools.TableHelper;
@@ -133,60 +130,49 @@ public class TransactionView extends VerticalLayout implements View {
 
         
         
-        ContextMenuOpenedListener.TableListener tableOpenListener = new ContextMenuOpenedListener.TableListener() {
+        ContextMenuOpenListener tableOpenListener = event -> {
+            event.getContextMenu().removeItems();
 
-            @Override
-            public void onContextMenuOpenFromRow(ContextMenuOpenedOnTableRowEvent event) {
-                event.getContextMenu().removeAllItems();
-                TransactionWrapper selectedItem =  (TransactionWrapper) event.getItemId();
+            TableContextClickEvent tableEvent = (TableContextClickEvent) event.getContextClickEvent();
+            TransactionWrapper selectedItem =  (TransactionWrapper) tableEvent.getItemId();
+            
+            if (Section.BODY==tableEvent.getSection() && selectedItem!=null) {
                 
-                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CREATE), ThemeResourceConstatns.CREATE).addItemClickListener(e -> createTransaction());
+                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_CREATE), ThemeResourceConstatns.CREATE, e1 -> createTransaction());
                 if (!selectedItem.getTransaction().isChild()) {
-                    event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_COPY), ThemeResourceConstatns.COPY).addItemClickListener(e -> copySelectedTransaction());
+                    event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_COPY), ThemeResourceConstatns.COPY, e2 -> copySelectedTransaction());
                 }
-                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_EDIT), ThemeResourceConstatns.EDIT).addItemClickListener(e -> editSelectedTransaction());
-                ContextMenuItem deleteItem = event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_DELETE), ThemeResourceConstatns.DELETE);
-                deleteItem.addItemClickListener(e -> deleteSelectedTransaction());
-                deleteItem.setSeparatorVisible(true);
+                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_EDIT), ThemeResourceConstatns.EDIT, e3 -> editSelectedTransaction());
+                event.getContextMenu().addItem(messagesResourceBundle.getString(I18nResourceConstant.TRANSACTIONS_ACTION_DELETE), ThemeResourceConstatns.DELETE, e4 -> deleteSelectedTransaction());
+                event.getContextMenu().addSeparator();
                 
                 for (SplitPartner splitPartner : selectedItem.getTransaction().getSplits().stream().map(sp -> sp.getSplitPartner()).collect(Collectors.toSet())) {
                     if (splitPartner instanceof Payee) {
-                        event.getContextMenu().addItem(String.format("Go to payee \"%s\"", splitPartner.getName())).addItemClickListener(e -> PartnerView.navigateWithPartner((Payee)splitPartner));
+                        event.getContextMenu().addItem(String.format("Go to payee \"%s\"", splitPartner.getName()), e5 -> PartnerView.navigateWithPartner((Payee)splitPartner));
                     }
                     if (splitPartner instanceof Account) {
-                        event.getContextMenu().addItem(String.format("Go to account \"%s\"", splitPartner.getName())).addItemClickListener(e -> TransactionView.navigate((Account)splitPartner));
+                        event.getContextMenu().addItem(String.format("Go to account \"%s\"", splitPartner.getName()), e6 -> TransactionView.navigate((Account)splitPartner));
                     }
                 }
                 
                 for (TransactionSplit split : selectedItem.getTransaction().getSplits()) {
                     if (split.getParent() != null) {
                         TransactionSplit splitParent = split.getParent();
-                        event.getContextMenu().addItem(String.format("Go to parent transaction of \"%s\"", split.getSplitPartner().getName())).addItemClickListener(e -> TransactionView.navigate(splitParent.getTransaction()));
+                        event.getContextMenu().addItem(String.format("Go to parent transaction of \"%s\"", split.getSplitPartner().getName()), e7 -> TransactionView.navigate(splitParent.getTransaction()));
                     } else if (split.getChildren()!=null) {
                         for (TransactionSplit childSplit : split.getChildren()) {
-                            event.getContextMenu().addItem(String.format("Go to child transaction of \"%s\"", split.getSplitPartner().getName())).addItemClickListener(e -> TransactionView.navigate(childSplit.getTransaction()));                            
+                            event.getContextMenu().addItem(String.format("Go to child transaction of \"%s\"", split.getSplitPartner().getName()), e8 -> TransactionView.navigate(childSplit.getTransaction()));                            
                         }
                     }
                 }
-                selectedItem.getTransaction().getSplits().stream().filter(s -> s.getCategory() != null).map(s -> s.getCategory())
-                        .forEach(c -> event.getContextMenu().addItem(String.format("Go to category \"%s\"", c.getName())).addItemClickListener(e -> CategoryView.navigate(c)));
-            }
-
-            @Override
-            public void onContextMenuOpenFromHeader(ContextMenuOpenedOnTableHeaderEvent event) {
-                event.getContextMenu().removeAllItems();
-            }
-
-            @Override
-            public void onContextMenuOpenFromFooter(ContextMenuOpenedOnTableFooterEvent event) {
-                event.getContextMenu().removeAllItems();
+                selectedItem.getTransaction().getSplits().stream().filter(s1 -> s1.getCategory() != null).map(s2 -> s2.getCategory())
+                        .forEach(c -> event.getContextMenu().addItem(String.format("Go to category \"%s\"", c.getName()), e9 -> CategoryView.navigate(c)));
             }
         };
 
-        ContextMenu contextMenu = new ContextMenu();
+        ContextMenu contextMenu = new ContextMenu(this, false);
         contextMenu.setAsContextMenuOf(transactionTable);
-
-        contextMenu.addContextMenuTableListener(tableOpenListener);        
+        contextMenu.addContextMenuOpenListener(tableOpenListener);        
         
         
         transactionTable.addGeneratedColumn(COLUMN_DATE, (source, itemId, columnId) -> {
