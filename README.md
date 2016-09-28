@@ -1,6 +1,6 @@
 # net.jmymoney
 
-Personal file manager, inspired by [KMyMoney](https://kmymoney.org/) with the intention to make it online.
+Personal finance manager, inspired by [KMyMoney](https://kmymoney.org/) with the intention to make it online.
 
 ##Screenshots: 
 
