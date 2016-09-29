@@ -11,4 +11,4 @@ Ledger
 ![Ledger](preview_ledger.png "Ledger")
 
 Reports
-![Reports](preview_ledger.png "Reports")
+![Reports](preview_report.png "Reports")
