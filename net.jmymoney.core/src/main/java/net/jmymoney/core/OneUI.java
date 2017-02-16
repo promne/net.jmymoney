@@ -50,9 +50,8 @@ import net.jmymoney.core.view.ReportView;
 import net.jmymoney.core.view.TransactionView;
 import net.jmymoney.core.view.UserAccountView;
 
-@CDIUI
-@Theme(value = "jmm")
-// @PreserveOnRefresh
+@CDIUI("")
+@Theme("jmm")
 @Widgetset("net.jmymoney.core.MyAppWidgetset")
 public class OneUI extends UI {
 
